@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bảng giá – NOX Joy Station</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.pricing-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem;
+  margin-top:3rem;
+}
+.pc {
+  background:var(--dark2); border:1px solid rgba(245,197,24,.1);
+  border-radius:var(--radius); padding:2rem;
+  position:relative; transition:all var(--transition);
+}
+.pc:hover { border-color:rgba(245,197,24,.3); transform:translateY(-5px); }
+.pc.hot {
+  background:linear-gradient(155deg,#1e1800,#141400 50%,var(--dark2));
+  border-color:var(--gold);
+}
+.hot-label {
+  position:absolute; top:-14px; left:50%; transform:translateX(-50%);
+  background:var(--gold); color:var(--black);
+  font-size:.68rem; font-weight:700; letter-spacing:1.5px;
+  padding:.3rem 1.3rem; border-radius:50px; white-space:nowrap; text-transform:uppercase;
+}
+.pc-emoji { font-size:2rem; margin-bottom:1rem; }
+.pc-name { font-size:.78rem; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:.7rem; }
+.pc-price {
+  font-family:'Syne',sans-serif; font-size:3.2rem; font-weight:800;
+  color:var(--gold); line-height:1; margin-bottom:.2rem;
+}
+.pc-price sup { font-size:1.2rem; vertical-align:super; font-size:1rem; }
+.pc-unit { font-size:.78rem; color:var(--muted); margin-bottom:1.8rem; }
+.pc-features { list-style:none; margin-bottom:1.8rem; }
+.pc-features li {
+  padding:.5rem 0; font-size:.87rem; color:rgba(240,237,232,.75);
+  border-bottom:1px solid rgba(245,197,24,.06);
+  display:flex; gap:.6rem; align-items:center;
+}
+.pc-features li:last-child { border:none; }
+.pc-features li::before { content:'✓'; color:var(--gold); font-weight:700; font-size:.78rem; flex-shrink:0; }
+.pc-features li.no::before { content:'✗'; color:#f87171; }
+.pc-features li.no { color:var(--muted); }
+.btn-plan {
+  width:100%; padding:.9rem; background:transparent;
+  border:1px solid rgba(245,197,24,.3); color:var(--gold);
+  border-radius:var(--radius-sm); font-weight:700; font-size:.85rem; letter-spacing:1px;
+  cursor:pointer; transition:all var(--transition);
+}
+.btn-plan:hover, .pc.hot .btn-plan { background:var(--gold); color:var(--black); border-color:var(--gold); }
+.pc.hot .btn-plan:hover { background:#ffe566; }
+
+/* Duration pricing table */
+.duration-section { margin-top:5rem; }
+.duration-table {
+  width:100%; border-collapse:collapse; margin-top:1.5rem;
+  border:1px solid rgba(245,197,24,.1); border-radius:var(--radius); overflow:hidden;
+}
+.duration-table th {
+  background:var(--dark2); padding:1rem 1.2rem;
+  font-family:'Syne',sans-serif; font-size:.72rem; font-weight:700; letter-spacing:2px;
+  text-transform:uppercase; color:var(--gold); text-align:left;
+  border-bottom:1px solid rgba(245,197,24,.12);
+}
+.duration-table td {
+  padding:.9rem 1.2rem; font-size:.88rem; color:var(--muted);
+  border-bottom:1px solid rgba(245,197,24,.06);
+}
+.duration-table tr:last-child td { border-bottom:none; }
+.duration-table tr:hover td { background:rgba(245,197,24,.03); }
+.duration-table .best { color:var(--gold); font-weight:700; }
+.duration-table .badge-save {
+  background:rgba(74,222,128,.15); border:1px solid rgba(74,222,128,.3); color:#4ade80;
+  font-size:.65rem; font-weight:700; padding:.15rem .5rem; border-radius:50px; margin-left:.5rem;
+}
+
+/* FAQ */
+.faq-list { margin-top:2rem; }
+.faq-item {
+  border:1px solid rgba(245,197,24,.08); border-radius:var(--radius-sm);
+  margin-bottom:.8rem; overflow:hidden; transition:border-color var(--transition);
+}
+.faq-item:hover { border-color:rgba(245,197,24,.2); }
+.faq-q {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1.1rem 1.3rem; cursor:pointer;
+  font-weight:600; font-size:.92rem;
+}
+.faq-q .arrow { color:var(--gold); transition:transform var(--transition); font-size:.8rem; }
+.faq-item.open .faq-q .arrow { transform:rotate(180deg); }
+.faq-a {
+  display:none; padding:0 1.3rem 1.1rem;
+  font-size:.87rem; color:var(--muted); line-height:1.75;
+}
+.faq-item.open .faq-a { display:block; }
+
+@media(max-width:960px) {
+  .pricing-grid { grid-template-columns:1fr; }
+  .section { padding:3rem 1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="page-hero">
+  <div class="page-hero-bg"></div>
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-content">
+    <div class="page-hero-label">Bảng giá</div>
+    <h1>Giá <span>rất phải chăng</span></h1>
+    <p>Không có phụ phí ẩn — chỉ trả cho thời gian bạn thực sự chơi. Boardgame miễn phí khi thuê phòng!</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="section-inner">
+    <!-- Main pricing -->
+    <div class="rev">
+      <div class="sec-label">Giá phòng theo giờ</div>
+      <h2>Chọn loại <span style="color:var(--gold)">phòng</span></h2>
+    </div>
+    <div class="pricing-grid rev">
+      <div class="pc">
+        <div class="pc-emoji">🎲</div>
+        <div class="pc-name">Boardgame Lounge</div>
+        <div class="pc-price"><sup>₫</sup>25K</div>
+        <div class="pc-unit">mỗi người / giờ</div>
+        <ul class="pc-features">
+          <li>30+ boardgame hoàn toàn miễn phí</li>
+          <li>Phòng riêng 3–10 người</li>
+          <li>Order đồ ăn tại phòng</li>
+          <li>Mở 9:00 – 2:00 sáng</li>
+          <li class="no">Không có console</li>
+        </ul>
+        <button class="btn-plan" onclick="location.href='booking.html?room=boardgame-1'">Đặt phòng</button>
+      </div>
+      <div class="pc">
+        <div class="pc-emoji">🎮</div>
+        <div class="pc-name">PS5 / Nintendo Switch</div>
+        <div class="pc-price"><sup>₫</sup>30K</div>
+        <div class="pc-unit">mỗi người / giờ</div>
+        <ul class="pc-features">
+          <li>PS5 hoặc Nintendo Switch</li>
+          <li>TV 4K 50"–65"</li>
+          <li>Phòng riêng 2–6 người</li>
+          <li>Boardgame free kèm theo</li>
+          <li>Order đồ ăn tại phòng</li>
+        </ul>
+        <button class="btn-plan" onclick="location.href='booking.html?room=ps5-1'">Đặt phòng</button>
+      </div>
+      <div class="pc hot">
+        <div class="hot-label">Phổ biến nhất</div>
+        <div class="pc-emoji">🎬</div>
+        <div class="pc-name">Cine Private</div>
+        <div class="pc-price"><sup>₫</sup>35K</div>
+        <div class="pc-unit">mỗi người / giờ</div>
+        <ul class="pc-features">
+          <li>Màn chiếu lớn + loa surround</li>
+          <li>Netflix, YouTube, Disney+</li>
+          <li>Phòng riêng 2–8 người</li>
+          <li>Sofa êm ái, thoải mái</li>
+          <li>Boardgame free kèm theo</li>
+          <li>Order đồ ăn tại phòng</li>
+        </ul>
+        <button class="btn-plan" onclick="location.href='booking.html?room=cine-1'">Đặt phòng ngay</button>
+      </div>
+      <div class="pc">
+        <div class="pc-emoji">💑</div>
+        <div class="pc-name">Couple Box</div>
+        <div class="pc-price"><sup>₫</sup>80K</div>
+        <div class="pc-unit">mỗi cặp / giờ</div>
+        <ul class="pc-features">
+          <li>Dành riêng cho 2 người</li>
+          <li>PS5 + Nintendo trong 1 phòng</li>
+          <li>Netflix riêng tư</li>
+          <li>Không gian lãng mạn, ấm cúng</li>
+          <li>Boardgame lựa chọn</li>
+        </ul>
+        <button class="btn-plan" onclick="location.href='booking.html?room=couple-1'">Đặt phòng</button>
+      </div>
+      <div class="pc">
+        <div class="pc-emoji">🎉</div>
+        <div class="pc-name">Party Room</div>
+        <div class="pc-price"><sup>₫</sup>200K</div>
+        <div class="pc-unit">cả phòng / giờ</div>
+        <ul class="pc-features">
+          <li>5–10 người / phòng</li>
+          <li>PS5 + Nintendo + Cine trong 1</li>
+          <li>Màn chiếu lớn</li>
+          <li>Cách âm hoàn toàn</li>
+          <li>Boardgame miễn phí</li>
+          <li>Ưu tiên đặt trước</li>
+        </ul>
+        <button class="btn-plan" onclick="location.href='booking.html?room=party-1'">Đặt phòng</button>
+      </div>
+      <div class="pc" style="background:linear-gradient(155deg,rgba(245,197,24,.06),var(--dark2));border-color:rgba(245,197,24,.2)">
+        <div class="pc-emoji">💡</div>
+        <div class="pc-name">Lưu ý khi đặt</div>
+        <div style="font-size:.87rem;color:var(--muted);line-height:1.8;margin-top:.5rem">
+          <p style="margin-bottom:.7rem">✅ <strong style="color:var(--white)">Boardgame miễn phí</strong> khi thuê bất kỳ phòng nào</p>
+          <p style="margin-bottom:.7rem">✅ <strong style="color:var(--white)">Giá trẻ em</strong> (dưới 12 tuổi): giảm 50%</p>
+          <p style="margin-bottom:.7rem">✅ <strong style="color:var(--white)">Gia hạn thêm giờ</strong>: Giữ nguyên giá đang thuê</p>
+          <p style="margin-bottom:.7rem">⚠️ <strong style="color:var(--white)">Cuối tuần & lễ</strong>: Đặt trước ít nhất 3 tiếng</p>
+          <p>🎂 <strong style="color:var(--white)">Sinh nhật</strong>: Được mang bánh vào miễn phí</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Duration table -->
+    <div class="duration-section rev">
+      <div class="sec-label">Tính giá theo số giờ</div>
+      <h2>Thuê càng lâu, <span style="color:var(--gold)">càng tiết kiệm</span></h2>
+      <table class="duration-table">
+        <thead>
+          <tr>
+            <th>Số giờ</th>
+            <th>Boardgame</th>
+            <th>PS5 / Nintendo</th>
+            <th>Cine</th>
+            <th>Couple Box</th>
+            <th>Party Room</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1 giờ</td><td>25K/người</td><td>30K/người</td><td>35K/người</td><td>80K/cặp</td><td>200K</td></tr>
+          <tr><td>2 giờ</td><td>50K/người</td><td>60K/người</td><td>70K/người</td><td>160K/cặp</td><td>400K</td></tr>
+          <tr><td>3 giờ</td><td>75K/người</td><td>90K/người</td><td>105K/người</td><td>240K/cặp</td><td>600K</td></tr>
+          <tr class="best"><td><strong>4 giờ</strong> <span class="badge-save">-10%</span></td><td class="best">90K/người</td><td class="best">108K/người</td><td class="best">126K/người</td><td class="best">288K/cặp</td><td class="best">720K</td></tr>
+          <tr class="best"><td><strong>6+ giờ</strong> <span class="badge-save">-15%</span></td><td class="best">127K/người</td><td class="best">153K/người</td><td class="best">178K/người</td><td class="best">408K/cặp</td><td class="best">1.020K</td></tr>
+          <tr class="best"><td><strong>Cả ngày</strong> <span class="badge-save">-20%</span></td><td class="best">Liên hệ</td><td class="best">Liên hệ</td><td class="best">Liên hệ</td><td class="best">Liên hệ</td><td class="best">Liên hệ</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FAQ -->
+    <div class="duration-section rev">
+      <div class="sec-label">Câu hỏi thường gặp</div>
+      <h2>FAQ <span style="color:var(--gold)">giá & đặt phòng</span></h2>
+      <div class="faq-list" id="faqList">
+        <div class="faq-item"><div class="faq-q">Boardgame có thực sự miễn phí không? <span class="arrow">▼</span></div><div class="faq-a">Có! Khi bạn thuê bất kỳ phòng nào tại NOX, bạn được chơi toàn bộ 30+ boardgame hoàn toàn KHÔNG mất thêm phí. Chỉ cần nói nhân viên bạn muốn chơi game gì là được mang lên ngay.</div></div>
+        <div class="faq-item"><div class="faq-q">Có thể gia hạn thêm giờ trong khi đang chơi không? <span class="arrow">▼</span></div><div class="faq-a">Được! Nếu phòng không có người đặt sau bạn, bạn hoàn toàn có thể gia hạn. Chỉ cần thông báo nhân viên ít nhất 15 phút trước khi hết giờ. Giá gia hạn giữ nguyên như khi bạn đặt.</div></div>
+        <div class="faq-item"><div class="faq-q">Đặt phòng rồi hủy có mất tiền không? <span class="arrow">▼</span></div><div class="faq-a">Hủy trước 2 tiếng: Hoàn tiền 100%. Hủy trong vòng 2 tiếng: Không hoàn tiền nhưng có thể đổi lịch trong vòng 7 ngày. Trường hợp khẩn cấp liên hệ trực tiếp fanpage để được hỗ trợ.</div></div>
+        <div class="faq-item"><div class="faq-q">Mang đồ ăn từ bên ngoài vào được không? <span class="arrow">▼</span></div><div class="faq-a">Được phép mang đồ ăn từ bên ngoài vào (không thu phí dịch vụ). Tuy nhiên bạn cần tự dọn rác và không để lại mùi mạnh ảnh hưởng phòng. NOX cũng có menu đa dạng phục vụ tận phòng với giá hợp lý.</div></div>
+        <div class="faq-item"><div class="faq-q">Trẻ em có được giảm giá không? <span class="arrow">▼</span></div><div class="faq-a">Trẻ em dưới 12 tuổi: Giảm 50% giá phòng. Trẻ em cần có người lớn đi kèm. Couple Box không áp dụng cho trẻ em.</div></div>
+        <div class="faq-item"><div class="faq-q">Thanh toán bằng hình thức nào? <span class="arrow">▼</span></div><div class="faq-a">NOX chấp nhận: Tiền mặt, Chuyển khoản ngân hàng, Momo, ZaloPay, VNPay. Thanh toán khi check-out (sau khi ra về). Không cần đặt cọc trước trừ trường hợp Party Room vào cuối tuần.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="data.js"></script>
+<script src="components.js"></script>
+<script>
+injectShared({ ticker: false });
+initPage();
+document.getElementById('faqList').addEventListener('click', e => {
+  const item = e.target.closest('.faq-item');
+  if (!item) return;
+  item.classList.toggle('open');
+});
+</script>
+</body>
+</html>

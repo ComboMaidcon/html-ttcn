@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đặt phòng – NOX Joy Station</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.booking-layout {
+  display:grid; grid-template-columns:1fr 380px; gap:2.5rem;
+  align-items:start;
+}
+.booking-form-wrap {
+  background:var(--dark2); border:1px solid rgba(245,197,24,.15);
+  border-radius:20px; padding:3rem; position:relative; overflow:hidden;
+}
+.booking-form-wrap::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+}
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-bottom:1.2rem; }
+.form-row.single { grid-template-columns:1fr; }
+.booking-note {
+  display:flex; align-items:center; gap:.7rem;
+  background:rgba(245,197,24,.08); border:1px solid rgba(245,197,24,.15);
+  border-radius:var(--radius-sm); padding:.9rem 1rem;
+  margin-bottom:2rem; font-size:.85rem; color:var(--muted);
+}
+.booking-note strong { color:var(--gold); }
+.btn-submit {
+  width:100%; padding:1.1rem;
+  background:var(--gold); color:var(--black);
+  border:none; border-radius:10px;
+  font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; letter-spacing:1px;
+  cursor:pointer; transition:all var(--transition); margin-top:.5rem;
+}
+.btn-submit:hover { background:#ffe566; box-shadow:0 12px 40px rgba(245,197,24,.3); transform:translateY(-2px); }
+
+/* Sidebar */
+.booking-sidebar { display:flex; flex-direction:column; gap:1.2rem; position:sticky; top:100px; }
+.sidebar-card {
+  background:var(--dark2); border:1px solid rgba(245,197,24,.1);
+  border-radius:var(--radius); padding:1.5rem;
+}
+.sidebar-title { font-family:'Syne',sans-serif; font-weight:700; font-size:.78rem; letter-spacing:2.5px; text-transform:uppercase; color:var(--gold); margin-bottom:1.2rem; }
+.selected-room {
+  display:flex; align-items:center; gap:1rem;
+  padding:.9rem; background:var(--dark3); border-radius:var(--radius-sm); border:1px solid rgba(245,197,24,.12);
+  margin-bottom:.8rem; cursor:pointer; transition:all var(--transition);
+}
+.selected-room:hover { border-color:rgba(245,197,24,.3); }
+.selected-room.active { border-color:var(--gold); background:rgba(245,197,24,.08); }
+.sr-emoji { font-size:1.8rem; flex-shrink:0; }
+.sr-name { font-weight:700; font-size:.88rem; }
+.sr-price { font-size:.78rem; color:var(--gold); font-weight:600; }
+.sr-cap { font-size:.72rem; color:var(--muted); }
+
+/* Price calc */
+.price-calc { font-size:.88rem; }
+.price-row { display:flex; justify-content:space-between; padding:.5rem 0; border-bottom:1px solid rgba(245,197,24,.06); color:var(--muted); }
+.price-row:last-child { border:none; }
+.price-total { display:flex; justify-content:space-between; padding:.8rem 0 0; font-family:'Syne',sans-serif; font-weight:800; font-size:1.1rem; color:var(--gold); }
+
+/* Info items */
+.info-row { display:flex; gap:.8rem; padding:.7rem 0; border-bottom:1px solid rgba(245,197,24,.05); font-size:.84rem; }
+.info-row:last-child { border:none; }
+.info-row-icon { font-size:1.1rem; flex-shrink:0; }
+.info-row-text { color:var(--muted); }
+.info-row-text strong { color:var(--white); }
+
+/* Success modal */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:900;
+  display:none; align-items:center; justify-content:center;
+  backdrop-filter:blur(8px);
+}
+.modal-overlay.visible { display:flex; }
+.modal-box {
+  background:var(--dark2); border:1px solid rgba(245,197,24,.25);
+  border-radius:20px; padding:3rem; max-width:480px; width:90%;
+  text-align:center; position:relative;
+  animation:fadeUp .4s ease both;
+}
+.modal-box::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,transparent,var(--gold),transparent); border-radius:20px 20px 0 0; }
+.modal-icon { font-size:4rem; margin-bottom:1rem; display:block; }
+.modal-title { font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800; color:var(--gold); margin-bottom:.5rem; }
+.modal-desc { font-size:.9rem; color:var(--muted); line-height:1.75; margin-bottom:1.5rem; }
+.modal-details { background:var(--dark3); border-radius:var(--radius-sm); padding:1rem; margin-bottom:1.5rem; text-align:left; font-size:.85rem; color:var(--muted); }
+.modal-details .md-row { display:flex; justify-content:space-between; padding:.35rem 0; border-bottom:1px solid rgba(245,197,24,.06); }
+.modal-details .md-row:last-child { border:none; }
+.modal-details .md-val { color:var(--white); font-weight:600; }
+
+@media(max-width:960px) {
+  .booking-layout { grid-template-columns:1fr; }
+  .booking-sidebar { position:static; }
+  .form-row { grid-template-columns:1fr; }
+  .section { padding:3rem 1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="page-hero">
+  <div class="page-hero-bg"></div>
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-content">
+    <div class="page-hero-label">Đặt phòng</div>
+    <h1>Đặt phòng <span>tại NOX</span></h1>
+    <p>Điền thông tin bên dưới — chúng tôi sẽ xác nhận qua điện thoại trong vài phút!</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="section-inner">
+    <div class="booking-layout">
+      <!-- FORM -->
+      <div class="booking-form-wrap rev">
+        <div class="booking-note">
+          💡 <span><strong>Lưu ý:</strong> Cuối tuần và ngày lễ đặt trước ít nhất 2–3 tiếng. Party Room cuối tuần cần đặt trước 1 ngày.</span>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Họ và tên</label>
+            <input type="text" id="f-name" placeholder="Tên của bạn">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Số điện thoại</label>
+            <input type="tel" id="f-phone" placeholder="0xxx xxx xxx">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Ngày đến</label>
+            <input type="date" id="f-date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Giờ bắt đầu</label>
+            <select id="f-start"></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Số giờ thuê</label>
+            <select id="f-duration">
+              <option value="1">1 giờ</option>
+              <option value="2">2 giờ</option>
+              <option value="3" selected>3 giờ</option>
+              <option value="4">4 giờ (giảm 10%)</option>
+              <option value="5">5 giờ</option>
+              <option value="6">6 giờ (giảm 15%)</option>
+              <option value="7">7 giờ</option>
+              <option value="8">8 giờ</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Số người</label>
+            <input type="number" id="f-people" placeholder="Bao nhiêu người?" min="1" max="10" value="2">
+          </div>
+        </div>
+        <div class="form-row single">
+          <div class="form-group">
+            <label class="form-label">Loại phòng</label>
+            <select id="f-room">
+              <option value="">-- Chọn phòng --</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row single">
+          <div class="form-group">
+            <label class="form-label">Ghi chú (tuỳ chọn)</label>
+            <textarea id="f-note" placeholder="Sinh nhật, yêu cầu đặc biệt, game muốn chơi, combo đồ ăn..."></textarea>
+          </div>
+        </div>
+        <!-- Conflict warning -->
+        <div id="conflictWarn" style="display:none;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:8px;padding:.9rem 1rem;margin-bottom:1rem;font-size:.85rem;color:#f87171;"></div>
+        <button class="btn-submit" onclick="submitBooking()">🎮 Xác nhận đặt phòng</button>
+      </div>
+
+      <!-- SIDEBAR -->
+      <div class="booking-sidebar rev">
+        <!-- Room quick select -->
+        <div class="sidebar-card">
+          <div class="sidebar-title">Chọn nhanh phòng</div>
+          <div id="roomQuickList"></div>
+        </div>
+        <!-- Price estimate -->
+        <div class="sidebar-card">
+          <div class="sidebar-title">Ước tính giá</div>
+          <div class="price-calc" id="priceCalc"></div>
+        </div>
+        <!-- Contact info -->
+        <div class="sidebar-card">
+          <div class="sidebar-title">Thông tin liên hệ</div>
+          <div class="info-row"><span class="info-row-icon">⏰</span><div class="info-row-text"><strong>9:00 – 2:00 sáng</strong> mỗi ngày</div></div>
+          <div class="info-row"><span class="info-row-icon">📘</span><div class="info-row-text">Fanpage: <strong>NOX Joy Station</strong></div></div>
+          <div class="info-row"><span class="info-row-icon">🎵</span><div class="info-row-text">TikTok: <strong>@noxjoystation</strong></div></div>
+          <div class="info-row"><span class="info-row-icon">💬</span><div class="info-row-text">Nhắn tin fanpage để đặt nhanh hơn</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Success modal -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal-box">
+    <span class="modal-icon">🎉</span>
+    <div class="modal-title">Đặt phòng thành công!</div>
+    <p class="modal-desc">Chúng tôi sẽ gọi điện xác nhận cho bạn trong vòng <strong style="color:var(--gold)">15 phút</strong>. Nếu chưa nhận được cuộc gọi, hãy nhắn tin qua Fanpage nhé!</p>
+    <div class="modal-details" id="bookingDetails"></div>
+    <button class="btn btn-gold btn-block" onclick="document.getElementById('successModal').classList.remove('visible');location.href='rooms.html'">🔍 Xem phòng trống khác</button>
+    <div style="margin-top:.8rem"><a href="index.html" style="color:var(--muted);font-size:.85rem;">← Về trang chủ</a></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="components.js"></script>
+<script>
+injectShared({ ticker: false });
+initPage();
+
+/* ── Populate hours ── */
+const HOURS = Array.from({length:18},(_,i)=>9+i);
+const startSel = document.getElementById('f-start');
+HOURS.forEach(h => { startSel.insertAdjacentHTML('beforeend',`<option value="${h}">${formatHour(h)}</option>`); });
+startSel.value = 14;
+document.getElementById('f-date').value = todayStr();
+
+/* ── Read URL params ── */
+const params = new URLSearchParams(location.search);
+const preRoom  = params.get('room');
+const preDate  = params.get('date');
+const preStart = params.get('start');
+if (preDate) document.getElementById('f-date').value = preDate;
+if (preStart) document.getElementById('f-start').value = preStart;
+if (params.get('end') && preStart) {
+  const dur = parseInt(params.get('end')) - parseInt(preStart);
+  if (dur > 0 && dur <= 8) document.getElementById('f-duration').value = dur;
+}
+
+/* ── Populate room select & sidebar ── */
+const roomSel   = document.getElementById('f-room');
+const quickList = document.getElementById('roomQuickList');
+
+ROOMS.forEach(r => {
+  roomSel.insertAdjacentHTML('beforeend', `<option value="${r.id}">${r.name} – ${r.price}K${r.priceUnit}</option>`);
+  quickList.insertAdjacentHTML('beforeend', `
+    <div class="selected-room ${r.id===preRoom?'active':''}" data-rid="${r.id}" onclick="selectRoom('${r.id}')">
+      <span class="sr-emoji">${r.emoji}</span>
+      <div>
+        <div class="sr-name">${r.name}</div>
+        <div class="sr-price">${r.price}K${r.priceUnit}</div>
+        <div class="sr-cap">👥 ${r.capacity}</div>
+      </div>
+    </div>`);
+});
+
+if (preRoom) roomSel.value = preRoom;
+
+/* ── Select room from sidebar ── */
+function selectRoom(id) {
+  roomSel.value = id;
+  document.querySelectorAll('.selected-room').forEach(el => el.classList.toggle('active', el.dataset.rid === id));
+  updatePrice();
+  checkConflict();
+}
+
+/* ── Sync sidebar → form select ── */
+roomSel.addEventListener('change', () => {
+  document.querySelectorAll('.selected-room').forEach(el => el.classList.toggle('active', el.dataset.rid === roomSel.value));
+  updatePrice(); checkConflict();
+});
+['f-start','f-duration','f-people','f-date'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => { updatePrice(); checkConflict(); });
+});
+
+/* ── Price calc ── */
+function updatePrice() {
+  const room     = ROOMS.find(r => r.id === roomSel.value);
+  const people   = parseInt(document.getElementById('f-people').value) || 1;
+  const duration = parseInt(document.getElementById('f-duration').value) || 1;
+  const calc     = document.getElementById('priceCalc');
+
+  if (!room) { calc.innerHTML = '<p style="color:var(--muted);font-size:.85rem">Chọn phòng để xem giá ước tính.</p>'; return; }
+
+  let discount = 0;
+  if (duration >= 6) discount = .15;
+  else if (duration >= 4) discount = .1;
+
+  let basePrice, totalBase, discountAmt, totalFinal;
+
+  if (room.type === 'couple') {
+    basePrice  = room.price;
+    totalBase  = basePrice * duration;
+    discountAmt= Math.round(totalBase * discount);
+    totalFinal = totalBase - discountAmt;
+  } else if (room.type === 'party') {
+    basePrice  = room.price;
+    totalBase  = basePrice * duration;
+    discountAmt= Math.round(totalBase * discount);
+    totalFinal = totalBase - discountAmt;
+  } else {
+    basePrice  = room.price * people;
+    totalBase  = basePrice * duration;
+    discountAmt= Math.round(totalBase * discount);
+    totalFinal = totalBase - discountAmt;
+  }
+
+  calc.innerHTML = `
+    <div class="price-row"><span>Loại phòng</span><span style="color:var(--white)">${room.name}</span></div>
+    <div class="price-row"><span>Đơn giá</span><span>${room.price}K${room.priceUnit}</span></div>
+    ${room.type !== 'couple' && room.type !== 'party' ? `<div class="price-row"><span>Số người</span><span>${people} người</span></div>` : ''}
+    <div class="price-row"><span>Số giờ</span><span>${duration}h</span></div>
+    ${discount > 0 ? `<div class="price-row" style="color:#4ade80"><span>Giảm giá</span><span>-${Math.round(discount*100)}% (-${discountAmt}K)</span></div>` : ''}
+    <div class="price-total"><span>Tổng ước tính</span><span>${totalFinal}K</span></div>
+    <p style="font-size:.72rem;color:var(--muted);margin-top:.5rem">*Giá cuối tính khi check-out theo giờ thực tế</p>`;
+}
+
+/* ── Conflict check ── */
+function checkConflict() {
+  const roomId   = roomSel.value;
+  const date     = document.getElementById('f-date').value;
+  const start    = parseInt(document.getElementById('f-start').value);
+  const duration = parseInt(document.getElementById('f-duration').value)||1;
+  const end      = start + duration;
+  const warn     = document.getElementById('conflictWarn');
+
+  if (!roomId || !date) { warn.style.display='none'; return; }
+
+  if (!isRoomFree(roomId, date, start, end)) {
+    warn.style.display = 'block';
+    const booked = getRoomBookings(roomId, date).filter(b => start < b.end && end > b.start);
+    warn.innerHTML = `⚠️ Phòng <strong>${ROOMS.find(r=>r.id===roomId)?.name}</strong> đã có người đặt trong khung giờ này. Vui lòng chọn giờ khác hoặc <a href="rooms.html" style="color:var(--gold)">xem phòng trống</a>.`;
+  } else {
+    warn.style.display = 'none';
+  }
+}
+
+updatePrice();
+checkConflict();
+
+/* ── Submit ── */
+function submitBooking() {
+  const name     = document.getElementById('f-name').value.trim();
+  const phone    = document.getElementById('f-phone').value.trim();
+  const date     = document.getElementById('f-date').value;
+  const start    = parseInt(document.getElementById('f-start').value);
+  const duration = parseInt(document.getElementById('f-duration').value)||1;
+  const end      = start + duration;
+  const people   = parseInt(document.getElementById('f-people').value)||1;
+  const roomId   = roomSel.value;
+  const note     = document.getElementById('f-note').value.trim();
+
+  if (!name)  { alert('Vui lòng nhập tên của bạn.'); return; }
+  if (!phone) { alert('Vui lòng nhập số điện thoại.'); return; }
+  if (!date)  { alert('Vui lòng chọn ngày.'); return; }
+  if (!roomId){ alert('Vui lòng chọn loại phòng.'); return; }
+
+  if (!isRoomFree(roomId, date, start, end)) {
+    alert('Phòng đã có người đặt trong khung giờ này. Vui lòng chọn giờ khác!');
+    return;
+  }
+
+  const room = ROOMS.find(r => r.id === roomId);
+  addBooking({ roomId, date, start, end, name, people, phone, note });
+
+  // Show success modal
+  const d = parseLocalDate(date);
+  const dateStr = d.toLocaleDateString('vi-VN', { weekday:'long', day:'numeric', month:'numeric', year:'numeric' });
+  document.getElementById('bookingDetails').innerHTML = `
+    <div class="md-row"><span>Phòng</span><span class="md-val">${room.name} ${room.emoji}</span></div>
+    <div class="md-row"><span>Ngày</span><span class="md-val">${dateStr}</span></div>
+    <div class="md-row"><span>Giờ</span><span class="md-val">${formatHour(start)} – ${formatHour(end)}</span></div>
+    <div class="md-row"><span>Số người</span><span class="md-val">${people} người</span></div>
+    <div class="md-row"><span>Liên hệ</span><span class="md-val">${phone}</span></div>`;
+  document.getElementById('successModal').classList.add('visible');
+}
+
+document.getElementById('successModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('visible');
+});
+</script>
+</body>
+</html>

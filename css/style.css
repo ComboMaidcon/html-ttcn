@@ -1,0 +1,220 @@
+/* --- 1. MODERN VARIABLES --- */
+:root {
+    /* A rich dark gradient background */
+    --bg-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+
+    /* Glassmorphism Settings */
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-blur: 15px;
+
+    /* Brand Colors */
+    --primary-gradient: linear-gradient(to bottom right, #00c6ff, #0072ff);
+    --text-main: #ffffff;
+    --text-muted: rgba(255, 255, 255, 0.6);
+
+    --nav-height: 65px;
+    --btn-width: 110px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+    /* 'Inter' is the industry standard for UI */
+}
+
+body {
+    height: 100vh;
+    background: var(--bg-gradient);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* Decorative background orbs to show off the glass effect */
+.orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    z-index: -1;
+    animation: float 10s infinite ease-in-out;
+}
+
+.orb-1 {
+    width: 300px;
+    height: 300px;
+    background: #7b2cbf;
+    top: 10%;
+    left: 20%;
+}
+
+.orb-2 {
+    width: 200px;
+    height: 200px;
+    background: #00c6ff;
+    bottom: 20%;
+    right: 20%;
+    animation-delay: -5s;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-30px);
+    }
+}
+
+/* --- 2. THE GLASS NAVBAR --- */
+.navbar {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    /* Safari support */
+    border: 1px solid var(--glass-border);
+    padding: 10px 15px;
+    border-radius: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.nav-list {
+    display: flex;
+    list-style: none;
+    gap: 8px;
+}
+
+/* --- 3. NAV ITEMS --- */
+.nav-item a {
+    display: block;
+    height: var(--nav-height);
+    width: var(--btn-width);
+    overflow: hidden;
+    text-decoration: none;
+    border-radius: 16px;
+    position: relative;
+    transition: background 0.3s ease;
+}
+
+/* Subtle hover state for non-active items */
+.nav-item a:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.nav-content {
+    height: 100%;
+    width: 100%;
+    transition: transform 0.5s cubic-bezier(0.68, -0.6, 0.32, 1.6);
+    /* Bouncier pop */
+}
+
+/* Common flex centering */
+.nav-content span {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: var(--nav-height);
+    width: 100%;
+}
+
+/* --- 4. TYPOGRAPHY & ICONOGRAPHY --- */
+.text {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: color 0.3s;
+}
+
+/* When active, text becomes white (before it disappears) */
+.nav-item.active .text {
+    color: var(--text-main);
+}
+
+.icon {
+    font-size: 1.4rem;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* Gradient Icon */
+    opacity: 0;
+    transform: scale(0.5);
+    /* Start small */
+    transition: opacity 0.3s, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* --- 5. INTERACTION STATES --- */
+
+/* The Slide Effect */
+.nav-item:hover .nav-content,
+.nav-item.active .nav-content {
+    transform: translateY(-100%);
+}
+
+/* Icon Animation on Reveal */
+.nav-item:hover .icon,
+.nav-item.active .icon {
+    opacity: 1;
+    transform: scale(1.2);
+    /* Pop effect */
+}
+
+/* The "Active" Glow Indicator */
+.nav-item {
+    position: relative;
+}
+
+/* Creates a glowing dot at the bottom of the active item */
+.nav-item::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    /* Position slightly outside or at very bottom */
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 20px;
+    height: 3px;
+    background: var(--primary-gradient);
+    border-radius: 10px;
+    box-shadow: 0 0 10px #00c6ff;
+    transition: transform 0.4s ease;
+}
+
+.nav-item.active::after {
+    transform: translateX(-50%) scaleX(1);
+}
+
+/* Focus rings for accessibility */
+.nav-item a:focus-visible {
+    outline: 2px solid #00c6ff;
+    outline-offset: -2px;
+}
+
+@media (max-width: 650px) {
+    .navbar {
+        padding: 10px;
+        width: 95%;
+    }
+
+    .nav-item a {
+        width: auto;
+        flex: 1;
+        min-width: 60px;
+    }
+
+    .text {
+        font-size: 0.7rem;
+    }
+}

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phòng chơi & Kiểm tra phòng trống – NOX Joy Station</title>
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── Availability Checker ── */
+.checker-wrap {
+  background:var(--dark);
+  border-bottom:1px solid rgba(245,197,24,.1);
+  position:sticky; top:72px; z-index:400;
+  padding:1.2rem 3.5rem;
+}
+.checker-inner { max-width:1100px; margin:0 auto; }
+.checker-title {
+  font-family:'Syne',sans-serif; font-size:.75rem; font-weight:700;
+  letter-spacing:3px; text-transform:uppercase; color:var(--gold);
+  margin-bottom:.8rem; display:flex; align-items:center; gap:.5rem;
+}
+.checker-form {
+  display:flex; gap:.8rem; align-items:flex-end; flex-wrap:wrap;
+}
+.checker-field { display:flex; flex-direction:column; gap:.35rem; flex:1; min-width:140px; }
+.checker-label { font-size:.65rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(245,197,24,.65); }
+.checker-field input, .checker-field select {
+  padding:.7rem .9rem; border-radius:var(--radius-sm);
+  background:var(--dark2); border:1px solid rgba(245,197,24,.15);
+  color:var(--white); font-size:.9rem;
+}
+.checker-field input:focus, .checker-field select:focus {
+  border-color:var(--gold); box-shadow:0 0 0 3px rgba(245,197,24,.08);
+}
+.btn-check {
+  background:var(--gold); color:var(--black);
+  border:none; border-radius:var(--radius-sm);
+  padding:.75rem 1.8rem; font-weight:700; font-size:.88rem;
+  cursor:pointer; transition:all var(--transition);
+  white-space:nowrap; flex-shrink:0; height:fit-content;
+  align-self:flex-end;
+}
+.btn-check:hover { background:#ffe566; transform:translateY(-1px); }
+.checker-status {
+  margin-top:.8rem;
+  font-size:.85rem; color:var(--muted);
+  display:none;
+}
+.checker-status.visible { display:block; }
+.checker-status strong { color:var(--gold); }
+
+/* ── Filter bar ── */
+.filter-bar {
+  display:flex; gap:.6rem; flex-wrap:wrap;
+  margin-bottom:2rem;
+}
+.filter-btn {
+  background:var(--dark2); border:1px solid rgba(245,197,24,.12); border-radius:50px;
+  padding:.45rem 1.1rem; font-size:.8rem; font-weight:600; color:var(--muted);
+  cursor:pointer; transition:all var(--transition);
+}
+.filter-btn:hover, .filter-btn.active {
+  background:var(--gold-dim); border-color:var(--gold); color:var(--gold);
+}
+
+/* ── Room grid ── */
+.rooms-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem;
+}
+.room-card {
+  background:var(--dark2);
+  border:1px solid rgba(245,197,24,.08);
+  border-radius:var(--radius);
+  overflow:hidden;
+  transition:transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+.room-card:hover {
+  transform:translateY(-5px);
+  border-color:rgba(245,197,24,.32);
+  box-shadow:0 16px 48px rgba(245,197,24,.1);
+}
+.room-card.unavailable {
+  opacity:.5; pointer-events:none;
+}
+.room-card.available-highlight {
+  border-color:rgba(74,222,128,.35);
+  box-shadow:0 0 0 1px rgba(74,222,128,.18);
+}
+.room-thumb {
+  height:180px; display:flex; align-items:center; justify-content:center;
+  font-size:4.5rem; position:relative; overflow:hidden;
+}
+.room-thumb::after {
+  content:''; position:absolute; bottom:0; left:0; right:0; height:60px;
+  background:linear-gradient(0deg,var(--dark2),transparent);
+}
+.room-top { position:relative; }
+.room-badges { position:absolute; top:.8rem; left:.8rem; display:flex; gap:.4rem; z-index:2; flex-wrap:wrap; }
+.avail-indicator {
+  position:absolute; top:.8rem; right:.8rem; z-index:2;
+  display:flex; align-items:center; gap:.35rem;
+  background:rgba(0,0,0,.7); border-radius:50px; padding:.25rem .7rem;
+  font-size:.7rem; font-weight:700; letter-spacing:.5px;
+  border:1px solid rgba(255,255,255,.1);
+  backdrop-filter:blur(6px);
+}
+.avail-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.avail-dot.free    { background:#4ade80; box-shadow:0 0 8px #4ade80; animation:blink 1.4s infinite; }
+.avail-dot.busy    { background:#f87171; }
+.avail-dot.partial { background:var(--gold); box-shadow:0 0 8px var(--gold); animation:blink 1.4s infinite; }
+.avail-label.free    { color:#4ade80; }
+.avail-label.busy    { color:#f87171; }
+.avail-label.partial { color:var(--gold); }
+
+.room-body { padding:1.3rem 1.5rem 1.5rem; }
+.room-name { font-family:'Syne',sans-serif; font-size:1.05rem; font-weight:700; margin-bottom:.35rem; }
+.room-cap  { font-size:.78rem; color:var(--muted); margin-bottom:.6rem; }
+.room-desc { font-size:.84rem; color:var(--muted); line-height:1.65; margin-bottom:1rem; }
+.room-tags { display:flex; gap:.45rem; flex-wrap:wrap; margin-bottom:1.2rem; }
+.rtag {
+  background:var(--gold-dim); border:1px solid rgba(245,197,24,.18);
+  color:var(--gold); font-size:.68rem; font-weight:600;
+  padding:.2rem .6rem; border-radius:50px;
+}
+.room-footer2 { display:flex; align-items:center; justify-content:space-between; border-top:1px solid rgba(245,197,24,.06); padding-top:1rem; }
+.room-price { font-family:'Syne',sans-serif; font-size:1.25rem; font-weight:800; color:var(--gold); }
+.room-price sub { font-size:.7rem; color:var(--muted); font-weight:400; }
+
+/* ── Timeline / Free slots ── */
+.timeline-wrap {
+  margin-top:.8rem;
+  background:var(--dark3); border-radius:8px; padding:.8rem 1rem;
+  display:none;
+}
+.timeline-wrap.visible { display:block; }
+.timeline-title { font-size:.65rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(245,197,24,.6); margin-bottom:.6rem; }
+.timeline-bar { display:flex; height:22px; border-radius:6px; overflow:hidden; gap:2px; background:var(--dark2); padding:2px; }
+.tl-slot {
+  flex:1; border-radius:4px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.55rem; font-weight:700; cursor:default; transition:filter .2s;
+  position:relative;
+}
+.tl-slot:hover { filter:brightness(1.2); }
+.tl-slot.free  { background:rgba(74,222,128,.25); border:1px solid rgba(74,222,128,.3); color:#4ade80; }
+.tl-slot.busy  { background:rgba(248,113,113,.15); border:1px solid rgba(248,113,113,.2); color:#f87171; }
+.tl-slot .tl-tip {
+  display:none; position:absolute; bottom:130%; left:50%; transform:translateX(-50%);
+  background:var(--dark); border:1px solid var(--gold-border); border-radius:6px;
+  padding:.4rem .7rem; white-space:nowrap; font-size:.7rem; color:var(--white);
+  z-index:10; pointer-events:none;
+}
+.tl-slot:hover .tl-tip { display:block; }
+.timeline-legend { display:flex; gap:1rem; margin-top:.5rem; }
+.tl-legend-item { display:flex; align-items:center; gap:.4rem; font-size:.68rem; color:var(--muted); }
+.tl-legend-dot { width:8px; height:8px; border-radius:2px; }
+
+/* ── No result ── */
+.empty-state {
+  grid-column:1/-1; text-align:center; padding:4rem 2rem;
+  color:var(--muted);
+}
+.empty-state .empty-icon { font-size:3.5rem; margin-bottom:1rem; display:block; }
+.empty-state h3 { font-size:1.2rem; color:var(--white); margin-bottom:.5rem; }
+.empty-state p { font-size:.9rem; }
+
+@media(max-width:960px) {
+  .checker-wrap { padding:1rem 1.5rem; }
+  .checker-form { flex-direction:column; }
+  .rooms-grid { grid-template-columns:1fr; }
+  .section { padding:3rem 1.5rem; }
+}
+@media(max-width:600px) {
+  .rooms-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+
+<!-- PAGE HERO -->
+<div class="page-hero">
+  <div class="page-hero-bg"></div>
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-content">
+    <div class="page-hero-label">Danh sách phòng</div>
+    <h1>Chọn <span>phòng</span> của bạn</h1>
+    <p>Tất cả phòng tại NOX đều <strong style="color:var(--white)">private 100%</strong> — không chia sẻ với khách lạ. Kiểm tra phòng trống theo giờ ngay bên dưới.</p>
+  </div>
+</div>
+
+<!-- TICKER -->
+
+<!-- ── AVAILABILITY CHECKER ── -->
+<div class="checker-wrap">
+  <div class="checker-inner">
+    <div class="checker-title">🔍 Kiểm tra phòng trống theo thời gian</div>
+    <div class="checker-form">
+      <div class="checker-field">
+        <span class="checker-label">Ngày</span>
+        <input type="date" id="checkDate">
+      </div>
+      <div class="checker-field">
+        <span class="checker-label">Giờ bắt đầu</span>
+        <select id="checkStart"></select>
+      </div>
+      <div class="checker-field">
+        <span class="checker-label">Giờ kết thúc</span>
+        <select id="checkEnd"></select>
+      </div>
+      <div class="checker-field">
+        <span class="checker-label">Loại phòng</span>
+        <select id="checkType">
+          <option value="">Tất cả loại phòng</option>
+          <option value="ps5">PS5</option>
+          <option value="nintendo">Nintendo Switch</option>
+          <option value="cine">Cine / Netflix</option>
+          <option value="boardgame">Boardgame</option>
+          <option value="couple">Couple Box</option>
+          <option value="party">Party Room</option>
+        </select>
+      </div>
+      <button class="btn-check" onclick="runAvailabilityCheck()">Kiểm tra ngay ⚡</button>
+    </div>
+    <div class="checker-status" id="checkerStatus"></div>
+  </div>
+</div>
+
+<!-- ROOMS SECTION -->
+<section class="section">
+  <div class="section-inner">
+    <!-- Filter bar -->
+    <div class="filter-bar" id="filterBar">
+      <button class="filter-btn active" data-type="">Tất cả</button>
+      <button class="filter-btn" data-type="ps5">🎮 PS5</button>
+      <button class="filter-btn" data-type="nintendo">🕹️ Nintendo</button>
+      <button class="filter-btn" data-type="cine">🎬 Cine</button>
+      <button class="filter-btn" data-type="boardgame">🎲 Boardgame</button>
+      <button class="filter-btn" data-type="couple">💑 Couple</button>
+      <button class="filter-btn" data-type="party">🎉 Party</button>
+    </div>
+
+    <!-- Rooms grid -->
+    <div class="rooms-grid" id="roomsGrid"></div>
+  </div>
+</section>
+
+<script src="data.js"></script>
+<script src="components.js"></script>
+<script>
+injectShared({ ticker: true });
+initPage();
+
+/* ── State ── */
+let activeFilter = '';
+let checkResult  = null; // null = no check done; Set of free roomIds
+const HOURS = Array.from({length:18}, (_,i) => 9 + i); // 9..26 (2am+1)
+
+/* ── Populate time selects ── */
+function populateSelects() {
+  const s = document.getElementById('checkStart');
+  const e = document.getElementById('checkEnd');
+  HOURS.forEach(h => {
+    s.insertAdjacentHTML('beforeend', `<option value="${h}">${formatHour(h)}</option>`);
+    e.insertAdjacentHTML('beforeend', `<option value="${h}">${formatHour(h)}</option>`);
+  });
+  s.value = 14; // default 14h
+  e.value = 17; // default 17h
+  // default date = today
+  document.getElementById('checkDate').value = todayStr();
+}
+populateSelects();
+
+/* ── Availability check ── */
+function runAvailabilityCheck() {
+  const date  = document.getElementById('checkDate').value;
+  const start = parseInt(document.getElementById('checkStart').value);
+  const end   = parseInt(document.getElementById('checkEnd').value);
+  const type  = document.getElementById('checkType').value;
+
+  if (!date) { showStatus('⚠️ Vui lòng chọn ngày.', false); return; }
+  if (start >= end) { showStatus('⚠️ Giờ kết thúc phải sau giờ bắt đầu.', false); return; }
+
+  let rooms = getAvailableRooms(date, start, end);
+  if (type) rooms = rooms.filter(r => r.type === type);
+
+  checkResult = new Set(rooms.map(r => r.id));
+
+  const total  = type ? ROOMS.filter(r => r.type === type).length : ROOMS.length;
+  const count  = rooms.length;
+
+  showStatus(
+    count === 0
+      ? `Không có phòng trống trong khoảng <strong>${formatHour(start)} – ${formatHour(end)}</strong>. Thử giờ khác nhé!`
+      : `Tìm thấy <strong>${count}/${total} phòng trống</strong> từ <strong>${formatHour(start)} – ${formatHour(end)}</strong> ngày <strong>${formatDisplayDate(date)}</strong>.`,
+    count > 0
+  );
+
+  // Sync type filter with checker
+  if (type) {
+    activeFilter = type;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  }
+
+  renderRooms();
+
+  // Scroll to grid
+  document.getElementById('roomsGrid').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function showStatus(html, ok) {
+  const el = document.getElementById('checkerStatus');
+  el.innerHTML = (ok ? '✅ ' : '') + html;
+  el.className = 'checker-status visible';
+  el.style.color = ok ? '#4ade80' : '#f87171';
+}
+
+function formatDisplayDate(str) {
+  const d = parseLocalDate(str);
+  return d.toLocaleDateString('vi-VN', { weekday:'short', day:'numeric', month:'numeric', year:'numeric' });
+}
+
+/* ── Filter buttons ── */
+document.getElementById('filterBar').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  activeFilter = btn.dataset.type;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+  renderRooms();
+});
+
+/* ── Render rooms ── */
+function renderRooms() {
+  const grid = document.getElementById('roomsGrid');
+  const date = document.getElementById('checkDate').value || todayStr();
+
+  let rooms = ROOMS;
+  if (activeFilter) rooms = rooms.filter(r => r.type === activeFilter);
+
+  if (!rooms.length) {
+    grid.innerHTML = `<div class="empty-state">
+      <span class="empty-icon">🎮</span>
+      <h3>Không tìm thấy phòng</h3>
+      <p>Thử bỏ bộ lọc hoặc chọn loại phòng khác.</p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = rooms.map(room => renderRoomCard(room, date)).join('');
+}
+
+function renderRoomCard(room, date) {
+  const freeSlots   = getFreeSlots(room.id, date);
+  const bookings    = getRoomBookings(room.id, date);
+  const totalFreeH  = freeSlots.reduce((s,sl) => s + sl.end - sl.start, 0);
+  const operatingH  = 17; // 9–26
+
+  let availClass = '', dotClass = '', labelText = '';
+  if (checkResult !== null) {
+    if (checkResult.has(room.id)) {
+      availClass = 'available-highlight';
+      dotClass   = 'free';
+      labelText  = 'Còn trống';
+    } else {
+      availClass = 'unavailable';
+      dotClass   = 'busy';
+      labelText  = 'Đã có khách';
+    }
+  } else {
+    if (totalFreeH >= operatingH * .8)      { dotClass = 'free';    labelText = 'Còn nhiều chỗ'; }
+    else if (totalFreeH >= operatingH * .3)  { dotClass = 'partial'; labelText = 'Còn vài khung'; }
+    else                                     { dotClass = 'busy';    labelText = 'Gần kín'; }
+  }
+
+  const tagsHtml  = room.features.map(f => `<span class="rtag">${f}</span>`).join('');
+  const timelineH = renderTimeline(room.id, date, freeSlots, bookings);
+
+  return `
+  <div class="room-card ${availClass}" data-id="${room.id}">
+    <div class="room-top">
+      <div class="room-thumb" style="background:${room.gradient}">${room.emoji}</div>
+      <div class="room-badges"><span class="badge ${room.badgeClass}">${room.badge}</span></div>
+      <div class="avail-indicator">
+        <span class="avail-dot ${dotClass}"></span>
+        <span class="avail-label ${dotClass}">${labelText}</span>
+      </div>
+    </div>
+    <div class="room-body">
+      <div class="room-name">${room.name}</div>
+      <div class="room-cap">👥 ${room.capacity}</div>
+      <p class="room-desc">${room.desc}</p>
+      <div class="room-tags">${tagsHtml}</div>
+      ${timelineH}
+      <div class="room-footer2">
+        <div class="room-price">${room.price}K <sub>${room.priceUnit}</sub></div>
+        <button class="btn-sm" onclick="goBook('${room.id}')">Đặt ngay →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderTimeline(roomId, date, freeSlots, bookings) {
+  const OPEN = 9, CLOSE = 26;
+  const slots = [];
+  for (let h = OPEN; h < CLOSE; h++) {
+    const isFree = !bookings.some(b => h >= b.start && h < b.end);
+    const tip    = isFree ? `${formatHour(h)} – ${formatHour(h+1)}: Trống` : `${formatHour(h)} – ${formatHour(h+1)}: Đã đặt`;
+    slots.push(`<div class="tl-slot ${isFree?'free':'busy'}" title="${tip}">${h < 24 ? h : '0'+(h-24)}<div class="tl-tip">${tip}</div></div>`);
+  }
+  return `
+  <div class="timeline-wrap visible">
+    <div class="timeline-title">Lịch hôm nay (${formatDisplayDate(date)})</div>
+    <div class="timeline-bar">${slots.join('')}</div>
+    <div class="timeline-legend">
+      <div class="tl-legend-item"><div class="tl-legend-dot" style="background:rgba(74,222,128,.5)"></div>Trống</div>
+      <div class="tl-legend-item"><div class="tl-legend-dot" style="background:rgba(248,113,113,.4)"></div>Đã đặt</div>
+    </div>
+  </div>`;
+}
+
+function goBook(roomId) {
+  const date  = document.getElementById('checkDate').value || todayStr();
+  const start = document.getElementById('checkStart').value;
+  const end   = document.getElementById('checkEnd').value;
+  location.href = `booking.html?room=${roomId}&date=${date}&start=${start}&end=${end}`;
+}
+
+function formatDisplayDate(str) {
+  if (!str) return '';
+  const d = parseLocalDate(str);
+  return d.toLocaleDateString('vi-VN', { weekday:'short', day:'numeric', month:'numeric' });
+}
+
+/* ── Initial render ── */
+renderRooms();
+
+// Update timeline when date changes
+document.getElementById('checkDate').addEventListener('change', renderRooms);
+</script>
+</body>
+</html>
