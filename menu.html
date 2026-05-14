@@ -1,224 +1,69 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Menu – NOX Joy Station</title>
-<link rel="stylesheet" href="style.css">
-<style>
-.menu-note {
-  display:flex; align-items:center; gap:.7rem;
-  background:linear-gradient(135deg,rgba(245,197,24,.1),rgba(245,197,24,.04));
-  border:1px solid rgba(245,197,24,.2);
-  border-radius:var(--radius); padding:1rem 1.5rem;
-  margin-bottom:3rem; font-size:.9rem; color:var(--muted);
-}
-.menu-note strong { color:var(--gold); }
-
-.menu-tabs { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:2.5rem; }
-.menu-tab {
-  background:var(--dark2); border:1px solid rgba(245,197,24,.12); border-radius:50px;
-  padding:.45rem 1.2rem; font-size:.82rem; font-weight:600; color:var(--muted);
-  cursor:pointer; transition:all var(--transition);
-}
-.menu-tab:hover, .menu-tab.active { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
-
-.menu-section { display:none; }
-.menu-section.active { display:block; }
-
-.menu-cat-title {
-  font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800;
-  color:var(--white); margin-bottom:.3rem;
-}
-.menu-cat-sub { font-size:.88rem; color:var(--muted); margin-bottom:1.8rem; }
-
-.menu-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; }
-
-.menu-card {
-  background:var(--dark2); border:1px solid rgba(245,197,24,.08);
-  border-radius:var(--radius); padding:1.5rem;
-  transition:all var(--transition);
-}
-.menu-card:hover { border-color:rgba(245,197,24,.25); transform:translateY(-3px); }
-.menu-card-icon { font-size:2.2rem; margin-bottom:.8rem; }
-.menu-card-name { font-family:'Syne',sans-serif; font-weight:700; font-size:.95rem; margin-bottom:.3rem; }
-.menu-card-desc { font-size:.8rem; color:var(--muted); margin-bottom:1rem; line-height:1.6; }
-.menu-card-footer { display:flex; align-items:center; justify-content:space-between; border-top:1px solid rgba(245,197,24,.06); padding-top:.8rem; }
-.menu-card-price { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:800; color:var(--gold); }
-.menu-badge-free { background:rgba(74,222,128,.15); border:1px solid rgba(74,222,128,.3); color:#4ade80; font-size:.68rem; font-weight:700; padding:.2rem .6rem; border-radius:50px; }
-
-/* All items list view */
-.menu-list { display:grid; grid-template-columns:1fr 1fr; gap:0; }
-.menu-list-item {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:.8rem 1rem;
-  border-bottom:1px solid rgba(245,197,24,.06);
-  transition:background var(--transition);
-}
-.menu-list-item:hover { background:rgba(245,197,24,.04); }
-.menu-list-left { display:flex; align-items:center; gap:.7rem; }
-.menu-list-emoji { font-size:1.3rem; }
-.menu-list-name { font-size:.9rem; font-weight:600; }
-.menu-list-sub  { font-size:.75rem; color:var(--muted); margin-top:.1rem; }
-.menu-list-price { font-family:'Syne',sans-serif; font-size:.95rem; font-weight:700; color:var(--gold); flex-shrink:0; }
-
-.section-divider { height:1px; background:linear-gradient(90deg,transparent,rgba(245,197,24,.2),transparent); margin:3rem 0; }
-
-@media(max-width:960px) {
-  .menu-grid { grid-template-columns:1fr 1fr; }
-  .menu-list { grid-template-columns:1fr; }
-  .section { padding:3rem 1.5rem; }
-}
-@media(max-width:600px) {
-  .menu-grid { grid-template-columns:1fr; }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Menu – NOX Joy Station</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/menu.css">
 </head>
 <body>
 
-<!-- NAV injected -->
-
-<div class="page-hero">
-  <div class="page-hero-bg"></div>
-  <div class="page-hero-grid"></div>
-  <div class="page-hero-content">
-    <div class="page-hero-label">Thực đơn</div>
-    <h1>Menu <span>NOX</span></h1>
-    <p>Đồ ăn & thức uống phục vụ tận phòng — order trong khi chơi, không cần ra ngoài một bước!</p>
-  </div>
-</div>
-
-<!-- TICKER injected -->
-
-<section class="section">
-  <div class="section-inner">
-    <div class="menu-note rev">
-      🛵 <span><strong>Phục vụ tận phòng miễn phí</strong> — order qua nhân viên hoặc quét QR code trong phòng. Thời gian chuẩn bị 10–15 phút.</span>
-    </div>
-
-    <!-- Tabs -->
-    <div class="menu-tabs" id="menuTabs">
-      <button class="menu-tab active" data-cat="nuoc">🧃 Nước uống</button>
-      <button class="menu-tab" data-cat="snack">🍿 Snack & Ăn vặt</button>
-      <button class="menu-tab" data-cat="annahe">🍜 Món ăn nhẹ</button>
-      <button class="menu-tab" data-cat="cafe">☕ Cà phê & Trà</button>
-      <button class="menu-tab" data-cat="combo">🎁 Combo tiết kiệm</button>
-    </div>
-
-    <!-- Nước uống -->
-    <div class="menu-section active" id="cat-nuoc">
-      <div class="menu-cat-title">🧃 Nước uống</div>
-      <p class="menu-cat-sub">Giải khát thoải mái — phục vụ lạnh tận phòng</p>
-      <div class="menu-grid">
-        <div class="menu-card"><div class="menu-card-icon">🥤</div><div class="menu-card-name">Coca / Pepsi lon</div><p class="menu-card-desc">Nước ngọt có ga mát lạnh, lý tưởng khi quẩy game căng thẳng</p><div class="menu-card-footer"><span class="menu-card-price">20K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">💧</div><div class="menu-card-name">Nước suối Lavie</div><p class="menu-card-desc">Nước tinh khiết 500ml — cần thiết khi chơi game nhiều giờ</p><div class="menu-card-footer"><span class="menu-card-price">10K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🍑</div><div class="menu-card-name">Trà đào cam sả</div><p class="menu-card-desc">Trà đào tươi mát, thơm ngon, nhiều đá cho buổi gaming dài</p><div class="menu-card-footer"><span class="menu-card-price">30K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">⚡</div><div class="menu-card-name">Nước tăng lực Monster</div><p class="menu-card-desc">Tăng năng lượng tức thì cho những ván game marathon</p><div class="menu-card-footer"><span class="menu-card-price">25K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🍋</div><div class="menu-card-name">Nước chanh muối</div><p class="menu-card-desc">Nước chanh muối đặc biệt — vừa ngon vừa bổ sung điện giải</p><div class="menu-card-footer"><span class="menu-card-price">20K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🧋</div><div class="menu-card-name">Sữa tươi trân châu</div><p class="menu-card-desc">Milk tea trân châu đường đen thơm ngon, thích hợp chill Netflix</p><div class="menu-card-footer"><span class="menu-card-price">40K</span></div></div>
-      </div>
-    </div>
-
-    <!-- Snack -->
-    <div class="menu-section" id="cat-snack">
-      <div class="menu-cat-title">🍿 Snack & Ăn vặt</div>
-      <p class="menu-cat-sub">Không thể thiếu khi chơi game — ăn một tay, game một tay!</p>
-      <div class="menu-grid">
-        <div class="menu-card"><div class="menu-card-icon">🍿</div><div class="menu-card-name">Bắp rang bơ</div><p class="menu-card-desc">Bắp rang bơ thơm lừng — snack quốc dân không thể thiếu khi xem phim</p><div class="menu-card-footer"><span class="menu-card-price">25K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🥔</div><div class="menu-card-name">Khoai tây chiên</div><p class="menu-card-desc">Giòn tan, muối vừa ăn, kèm sốt tương cà đặc biệt</p><div class="menu-card-footer"><span class="menu-card-price">35K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🍘</div><div class="menu-card-name">Bánh snack hỗn hợp</div><p class="menu-card-desc">Combo nhiều loại snack đa dạng cho cả hội cùng nhâm nhi</p><div class="menu-card-footer"><span class="menu-card-price">15K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🌭</div><div class="menu-card-name">Xúc xích nướng</div><p class="menu-card-desc">Xúc xích nướng thơm ngon, kèm tương ớt và tương cà</p><div class="menu-card-footer"><span class="menu-card-price">30K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🥜</div><div class="menu-card-name">Hạt dinh dưỡng</div><p class="menu-card-desc">Mix hạt hạnh nhân, đậu phộng, hướng dương — healthy snacking</p><div class="menu-card-footer"><span class="menu-card-price">35K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🍫</div><div class="menu-card-name">Socola & kẹo</div><p class="menu-card-desc">Socola KitKat, M&Ms, kẹo gấu dẻo đủ loại — ngọt ngào cho buổi chơi</p><div class="menu-card-footer"><span class="menu-card-price">20K</span></div></div>
-      </div>
-    </div>
-
-    <!-- Ăn nhẹ -->
-    <div class="menu-section" id="cat-annahe">
-      <div class="menu-cat-title">🍜 Món ăn nhẹ</div>
-      <p class="menu-cat-sub">Bụng đói thì không chơi được — ăn no rồi quẩy tiếp!</p>
-      <div class="menu-list">
-        <div class="menu-list-item"><div class="menu-list-left"><span class="menu-list-emoji">🍜</span><div><div class="menu-list-name">Mì xào bò</div><div class="menu-list-sub">Mì xào giòn, thịt bò mềm, rau củ</div></div></div><span class="menu-list-price">55K</span></div>
-        <div class="menu-list-item"><div class="menu-list-left"><span class="menu-list-emoji">🍳</span><div><div class="menu-list-name">Cơm chiên dương châu</div><div class="menu-list-sub">Cơm rang trứng, tôm, lạp xưởng</div></div></div><span class="menu-list-price">50K</span></div>
-        <div class="menu-list-item"><div class="menu-list-left"><span class="menu-list-emoji">🍗</span><div><div class="menu-list-name">Gà rán (2 miếng)</div><div class="menu-list-sub">Giòn bên ngoài, mềm bên trong</div></div></div><span class="menu-list-price">60K</span></div>
-        <div class="menu-list-item"><div class="menu-list-left"><span class="menu-list-emoji">🥪</span><div><div class="menu-list-name">Sandwich thịt nguội</div><div class="menu-list-sub">Bánh mì nướng, thịt nguội, rau sốt</div></div></div><span class="menu-list-price">40K</span></div>
-        <div class="menu-list-item"><div class="menu-list-left"><span class="menu-list-emoji">🍱</span><div><div class="menu-list-name">Cơm hộp văn phòng</div><div class="menu-list-sub">1 món mặn + 1 rau + cơm trắng</div></div></div><span class="menu-list-price">55K</span></div>
-        <div class="menu-list-item"><div class="menu-list-left"><span class="menu-list-emoji">🌮</span><div><div class="menu-list-name">Bánh tráng trộn</div><div class="menu-list-sub">Đặc sản Sài Gòn, cay vừa hoặc nhiều</div></div></div><span class="menu-list-price">35K</span></div>
-        <div class="menu-list-item"><div class="menu-list-left"><span class="menu-list-emoji">🍕</span><div><div class="menu-list-name">Pizza mini (4 miếng)</div><div class="menu-list-sub">Pizza phô mai đủ topping</div></div></div><span class="menu-list-price">70K</span></div>
-        <div class="menu-list-item"><div class="menu-list-left"><span class="menu-list-emoji">🥚</span><div><div class="menu-list-name">Mì ly cao cấp</div><div class="menu-list-sub">Hảo Hảo / Kokomi các vị</div></div></div><span class="menu-list-price">20K</span></div>
-      </div>
-    </div>
-
-    <!-- Cafe -->
-    <div class="menu-section" id="cat-cafe">
-      <div class="menu-cat-title">☕ Cà phê & Trà</div>
-      <p class="menu-cat-sub">Tỉnh táo suốt buổi chơi game với lineup đồ uống đỉnh cao</p>
-      <div class="menu-grid">
-        <div class="menu-card"><div class="menu-card-icon">☕</div><div class="menu-card-name">Cà phê đen đá</div><p class="menu-card-desc">Cà phê phin truyền thống Việt Nam — đậm đà, thơm ngon, đúng vị</p><div class="menu-card-footer"><span class="menu-card-price">25K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🥛</div><div class="menu-card-name">Bạc xỉu</div><p class="menu-card-desc">Cà phê sữa ít đường, nhẹ nhàng cho những ai không quen cà phê mạnh</p><div class="menu-card-footer"><span class="menu-card-price">30K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🍵</div><div class="menu-card-name">Matcha Latte</div><p class="menu-card-desc">Matcha Nhật Bản thật, mix sữa tươi — healthy và ngon lạ</p><div class="menu-card-footer"><span class="menu-card-price">40K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🧋</div><div class="menu-card-name">Trà sữa trân châu</div><p class="menu-card-desc">Milk tea truyền thống, trân châu mềm dẻo, đường tùy chỉnh</p><div class="menu-card-footer"><span class="menu-card-price">40K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🥤</div><div class="menu-card-name">Sinh tố trái cây</div><p class="menu-card-desc">Sinh tố xoài, dâu, bơ — tươi ngon, tăng năng lượng game marathon</p><div class="menu-card-footer"><span class="menu-card-price">45K</span></div></div>
-        <div class="menu-card"><div class="menu-card-icon">🧊</div><div class="menu-card-name">Caramel Frappuccino</div><p class="menu-card-desc">Đồ uống lạnh đặc biệt của NOX — ngọt dịu, thơm caramel, nhiều đá bào</p><div class="menu-card-footer"><span class="menu-card-price">50K</span></div></div>
-      </div>
-    </div>
-
-    <!-- Combo -->
-    <div class="menu-section" id="cat-combo">
-      <div class="menu-cat-title">🎁 Combo tiết kiệm</div>
-      <p class="menu-cat-sub">Đặt combo tiết kiệm hơn order lẻ — nhiều đồ ăn hơn, chi tiêu ít hơn!</p>
-      <div class="menu-grid" style="grid-template-columns:repeat(2,1fr)">
-        <div class="menu-card">
-          <div class="menu-card-icon">👫</div>
-          <div class="menu-card-name">Combo Couple</div>
-          <p class="menu-card-desc">Dành cho 2 người: 2 ly trà đào + 1 bắp rang bơ lớn + 2 gói snack. Hoàn hảo cho buổi chill Netflix hoặc PS5 cùng người ấy.</p>
-          <div class="menu-card-footer">
-            <span class="menu-card-price">75K <small style="color:var(--muted);font-size:.75rem;font-weight:400">(tiết kiệm 15K)</small></span>
-          </div>
-        </div>
-        <div class="menu-card">
-          <div class="menu-card-icon">👨‍👩‍👧‍👦</div>
-          <div class="menu-card-name">Combo Hội bạn (4–6 người)</div>
-          <p class="menu-card-desc">4 lon nước + 2 bắp rang bơ lớn + 2 phần khoai tây chiên + 4 gói snack. Đủ cho cả buổi quẩy game!</p>
-          <div class="menu-card-footer">
-            <span class="menu-card-price">170K <small style="color:var(--muted);font-size:.75rem;font-weight:400">(tiết kiệm 30K)</small></span>
-          </div>
-        </div>
-        <div class="menu-card">
-          <div class="menu-card-icon">🌙</div>
-          <div class="menu-card-name">Combo Đêm khuya</div>
-          <p class="menu-card-desc">Cho 2 người: 2 cà phê đen đá + 2 mì xào + 1 khoai tây chiên. Xây dựng năng lượng cho những ván game xuyên đêm!</p>
-          <div class="menu-card-footer">
-            <span class="menu-card-price">155K <small style="color:var(--muted);font-size:.75rem;font-weight:400">(tiết kiệm 20K)</small></span>
-          </div>
-        </div>
-        <div class="menu-card">
-          <div class="menu-card-icon">🎂</div>
-          <div class="menu-card-name">Combo Sinh nhật</div>
-          <p class="menu-card-desc">6 lon nước + 3 bắp rang bơ + 2 pizza mini + đồ ăn vặt đa dạng. Đủ cho cả hội sinh nhật vui vẻ!</p>
-          <div class="menu-card-footer">
-            <span class="menu-card-price">290K <small style="color:var(--muted);font-size:.75rem;font-weight:400">(tiết kiệm 60K)</small></span>
-          </div>
-        </div>
-      </div>
+  <div class="page-hero">
+    <div class="page-hero-bg"></div>
+    <div class="page-hero-grid"></div>
+    <div class="page-hero-content">
+      <div class="page-hero-label">Thực đơn</div>
+      <h1>Menu <span>NOX</span></h1>
+      <p>Order tận phòng — ăn trong khi chơi, không cần bước ra ngoài.</p>
     </div>
   </div>
-</section>
 
-<script src="data.js"></script>
-<script src="components.js"></script>
-<script>
-injectShared({ ticker: false });
-initPage();
+  <section class="section">
+    <div class="section-inner">
 
-document.getElementById('menuTabs').addEventListener('click', e => {
-  const tab = e.target.closest('.menu-tab');
-  if (!tab) return;
-  document.querySelectorAll('.menu-tab').forEach(t => t.classList.remove('active'));
-  tab.classList.add('active');
-  document.querySelectorAll('.menu-section').forEach(s => s.classList.remove('active'));
-  document.getElementById('cat-' + tab.dataset.cat).classList.add('active');
-});
-</script>
+      <div class="menu-note rev">
+        🛵 <span><strong>Phục vụ tận phòng miễn phí</strong>
+        — order qua nhân viên hoặc quét QR trong phòng. Chuẩn bị 10–15 phút.</span>
+      </div>
+
+      <div class="menu-tabs" id="menuTabs">
+        <button class="menu-tab active" data-tab="drink">🧃 Đồ uống</button>
+        <button class="menu-tab"        data-tab="food" >🍕 Đồ ăn</button>
+      </div>
+
+      <div class="menu-toolbar rev">
+        <input  class="menu-search" id="menuSearch" type="search"
+                placeholder="🔍 Tìm tên món..." autocomplete="off">
+        <select class="menu-sort"   id="menuSort">
+          <option value="default"   >Mặc định</option>
+          <option value="price-asc" >Giá tăng dần</option>
+          <option value="price-desc">Giá giảm dần</option>
+          <option value="name-asc"  >Tên A → Z</option>
+        </select>
+        <span class="menu-result-count" id="resultCount"></span>
+      </div>
+
+      <div class="menu-section active" id="tab-drink">
+        <div id="drink-content"></div>
+      </div>
+      <div class="menu-section" id="tab-food">
+        <div id="food-content"></div>
+      </div>
+
+      <div class="admin-hint">
+        <a href="admin.html">⚙ Quản lý menu</a>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/utils.js"      defer></script>
+  <script src="js/init.js"       defer></script>
+  <script src="js/components.js" defer></script>
+  <script src="js/menu-data.js"  defer></script>
+  <script src="js/menu.js"       defer></script>
 </body>
 </html>

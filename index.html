@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NOX Joy Station – Phòng Game Private Hà Nội</title>
-<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
 <style>
 /* ── Hero ── */
 .hero {
@@ -27,12 +30,12 @@
     linear-gradient(rgba(245,197,24,.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(245,197,24,.03) 1px, transparent 1px);
   background-size:55px 55px;
-  animation:gridScroll 25s linear infinite;
+  
 }
 @keyframes gridScroll { to { background-position:0 55px; } }
 .hero-bg-word {
   position:absolute; right:-1rem; top:50%; transform:translateY(-50%);
-  font-family:'Bebas Neue',sans-serif; font-size:22vw;
+  font-family:'Bebas Neue',sans-serif; font-size:16vw;
   color:rgba(245,197,24,.025); line-height:1;
   pointer-events:none; user-select:none; white-space:nowrap;
 }
@@ -40,7 +43,7 @@
   position:absolute; right:8%; top:50%; transform:translateY(-50%);
   width:500px; height:500px;
   background:radial-gradient(circle, rgba(245,197,24,.1) 0%, transparent 70%);
-  animation:pulse2 5s ease-in-out infinite;
+  
 }
 @keyframes pulse2 { 0%,100%{transform:translateY(-50%) scale(1)} 50%{transform:translateY(-50%) scale(1.1)} }
 
@@ -56,7 +59,7 @@
 .pill-dot { width:7px; height:7px; background:var(--gold); border-radius:50%; animation:blink 1.4s infinite; }
 
 .hero h1 {
-  font-size:clamp(3.2rem,9vw,7.5rem);
+  font-size:clamp(2rem,4.5vw,4rem);
   line-height:.95; letter-spacing:-2px;
   animation:fadeUp .7s .15s ease both;
 }
@@ -76,7 +79,7 @@
   background:var(--dark2); border:1px solid rgba(245,197,24,.1); border-radius:12px;
   padding:.9rem 1rem;
 }
-.stat-num { font-family:'Syne',sans-serif; font-size:1.7rem; font-weight:800; color:var(--gold); line-height:1; }
+.stat-num { font-family:'Kanit',sans-serif; font-size:1.7rem; font-weight:800; color:var(--gold); line-height:1; }
 .stat-lbl { font-size:.72rem; color:var(--muted); margin-top:.2rem; line-height:1.4; }
 
 /* ── Features ── */
@@ -93,7 +96,7 @@
 }
 .feat-item:hover { background:var(--dark2); }
 .feat-icon { font-size:2rem; margin-bottom:.8rem; display:block; filter:drop-shadow(0 0 14px rgba(245,197,24,.4)); }
-.feat-name { font-family:'Syne',sans-serif; font-weight:700; font-size:.9rem; color:var(--white); margin-bottom:.5rem; }
+.feat-name { font-family:'Kanit',sans-serif; font-weight:700; font-size:.9rem; color:var(--white); margin-bottom:.5rem; }
 .feat-desc { font-size:.82rem; color:var(--muted); line-height:1.65; }
 
 /* ── For Who ── */
@@ -109,7 +112,7 @@
 .fw-card.gold-tint { background:linear-gradient(135deg,rgba(245,197,24,.1),rgba(245,197,24,.03)); }
 .fw-card.dark-tint { background:var(--dark2); }
 .fw-icon { font-size:2.4rem; flex-shrink:0; margin-top:.1rem; }
-.fw-name { font-family:'Syne',sans-serif; font-weight:800; font-size:1.15rem; margin-bottom:.4rem; }
+.fw-name { font-family:'Kanit',sans-serif; font-weight:800; font-size:1.15rem; margin-bottom:.4rem; }
 .fw-desc { font-size:.87rem; color:var(--muted); line-height:1.75; }
 
 /* ── CTA Banner ── */
@@ -171,28 +174,24 @@
       <span class="pill-dot"></span>
       Đang mở cửa · 9:00 – 2:00 sáng hằng ngày
     </div>
-    <h1>
-      Phòng Game<br>
-      <em>Private tuyệt đối</em>
-      tại Hà Nội
-    </h1>
+    <h1>NOX Joy Station —<br><em>Phòng riêng, vibe riêng</em></h1>
     <p class="hero-sub">Không gian riêng tư để chơi PS5, Nintendo Switch, xem Netflix hay quẩy boardgame cùng người ấy hoặc nhóm bạn thân — chỉ từ <strong style="color:var(--gold)">25.000đ</strong>.</p>
     <div class="hero-chips">
-      <div class="chip">🎮 <b>PS5</b></div>
-      <div class="chip">🕹️ <b>Nintendo Switch</b></div>
-      <div class="chip">🎲 <b>30+ Boardgame</b></div>
-      <div class="chip">🎬 <b>Netflix</b></div>
-      <div class="chip">🔒 <b>Phòng riêng</b></div>
+      <div class="chip">🎮 <b>PS5 · Switch</b></div>
+      <div class="chip">🎲 <b>30+ Boardgame miễn phí</b></div>
+      <div class="chip">🎬 <b>Cine Box · Netflix</b></div>
+      <div class="chip">🍕 <b>Order tận phòng</b></div>
+      <div class="chip">🔒 <b>Private 100%</b></div>
     </div>
     <div class="hero-ctas">
       <a href="rooms.html" class="btn btn-gold">🔍 Xem phòng trống</a>
       <a href="booking.html" class="btn btn-outline">📅 Đặt phòng ngay</a>
     </div>
     <div class="hero-stats">
-      <div class="stat-card"><div class="stat-num">7</div><div class="stat-lbl">Phòng private</div></div>
-      <div class="stat-card"><div class="stat-num">1–10</div><div class="stat-lbl">Người / phòng</div></div>
-      <div class="stat-card"><div class="stat-num">25K</div><div class="stat-lbl">Giá từ (VNĐ)</div></div>
-      <div class="stat-card"><div class="stat-num">5★</div><div class="stat-lbl">Đánh giá TikTok</div></div>
+      <div class="stat-card"><div class="stat-num">15</div><div class="stat-lbl">Phòng private</div></div>
+      <div class="stat-card"><div class="stat-num">3</div><div class="stat-lbl">Tầng · T4 T5 T6</div></div>
+      <div class="stat-card"><div class="stat-num">59K</div><div class="stat-lbl">Giá từ / giờ</div></div>
+      <div class="stat-card"><div class="stat-num">9h–2h</div><div class="stat-lbl">Mở cửa mỗi ngày</div></div>
     </div>
   </div>
 
@@ -213,13 +212,13 @@
     </div>
     <div class="features-grid rev">
       <div class="feat-item"><span class="feat-icon">🔒</span><div class="feat-name">Private 100%</div><p class="feat-desc">Phòng hoàn toàn riêng tư, không chia sẻ với khách lạ</p></div>
-      <div class="feat-item"><span class="feat-icon">💰</span><div class="feat-name">Giá phải chăng</div><p class="feat-desc">Chỉ từ 25K/người — rẻ hơn một ly cà phê</p></div>
-      <div class="feat-item"><span class="feat-icon">🎲</span><div class="feat-name">Boardgame miễn phí</div><p class="feat-desc">30+ boardgame hoàn toàn miễn phí khi thuê phòng</p></div>
+      <div class="feat-item"><span class="feat-icon">💰</span><div class="feat-name">Giá rõ ràng, không ẩn phí</div><p class="feat-desc">Chỉ từ 59K/giờ cho Small Room — rẻ hơn một buổi cà phê</p></div>
+      <div class="feat-item"><span class="feat-icon">🎲</span><div class="feat-name">Boardgame miễn phí</div><p class="feat-desc">30+ boardgame miễn phí kèm theo mọi phòng, mọi khung giờ</p></div>
       <div class="feat-item"><span class="feat-icon">⏰</span><div class="feat-name">Mở 9h – 2h sáng</div><p class="feat-desc">Phục vụ từ sáng sớm đến tận 2h đêm mỗi ngày</p></div>
-      <div class="feat-item"><span class="feat-icon">🍜</span><div class="feat-name">F&B tận phòng</div><p class="feat-desc">Order đồ ăn & nước ngay tại phòng, không cần ra ngoài</p></div>
+      <div class="feat-item"><span class="feat-icon">🍜</span><div class="feat-name">F&B tận phòng</div><p class="feat-desc">Order tận phòng miễn phí — mang đồ ngoài vào phụ thu 40K</p></div>
       <div class="feat-item"><span class="feat-icon">🧹</span><div class="feat-name">Sạch sẽ & tiện nghi</div><p class="feat-desc">Dọn dẹp kỹ lưỡng sau mỗi lượt khách</p></div>
       <div class="feat-item"><span class="feat-icon">📅</span><div class="feat-name">Đặt phòng dễ dàng</div><p class="feat-desc">Book online hoặc nhắn tin fanpage — xác nhận nhanh</p></div>
-      <div class="feat-item"><span class="feat-icon">🏆</span><div class="feat-name">Đánh giá 5 sao</div><p class="feat-desc">Hơn 500 review 5★ trên Facebook & TikTok</p></div>
+      <div class="feat-item"><span class="feat-icon">🏆</span><div class="feat-name">Đặt phòng dễ dàng</div><p class="feat-desc">Đặt phòng online hoặc nhắn fanpage — xác nhận trong 5 phút</p></div>
     </div>
   </div>
 </section>
@@ -280,11 +279,16 @@
 
 <!-- FOOTER injected -->
 
-<script src="data.js"></script>
-<script src="components.js"></script>
-<script>
-  injectShared({ ticker: true });
-  initPage();
+<script src="js/utils.js" defer></script>
+<script src="js/rooms-data.js" defer></script>
+<script src="js/bookings.js" defer></script>
+<script src="js/init.js" defer></script>
+<script src="js/components.js" defer></script>
+<script defer>
+  document.addEventListener("DOMContentLoaded", () => {
+    injectShared({ ticker: true });
+    initPage();
+  });
 </script>
 </body>
 </html>

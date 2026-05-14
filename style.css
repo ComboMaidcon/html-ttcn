@@ -32,13 +32,11 @@ body {
   font-family:var(--font-body);
   line-height:1.6;
   overflow-x:hidden;
-  cursor:none;
+  /* cursor:none removed — was causing lag */
 }
 
-/* ── Custom Cursor ── */
-.cur  { width:10px; height:10px; background:var(--gold); border-radius:50%; position:fixed; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); transition:transform .1s; mix-blend-mode:difference; }
-.cur
- { width:28px; height:28px; border:1.5px solid var(--gold); border-radius:50%; position:fixed; pointer-events:none; z-index:9998; transform:translate(-50%,-50%); transition:all .12s ease; opacity:.6; }
+/* Cursor elements hidden — removed mousemove listener for perf */
+.cur, .cur2 { display:none; }
 
 /* ── Typography ── */
 h1,h2,h3,h4,h5 { font-family:var(--font-display); font-weight:800; line-height:1.1; letter-spacing:-.5px; }
@@ -53,12 +51,12 @@ nav {
   position:fixed; top:0; left:0; right:0; z-index:600;
   display:flex; align-items:center; justify-content:space-between;
   padding:1rem 3.5rem;
-  transition:background var(--transition), border-color var(--transition), backdrop-filter var(--transition);
+  transition:background var(--transition), border-color var(--transition);
 }
 nav.scrolled {
   background:rgba(12,12,12,.96);
   border-bottom:1px solid var(--gold-border);
-  backdrop-filter:blur(18px);
+  backdrop-filter:blur(12px);
 }
 .logo { display:flex; align-items:center; gap:.65rem; }
 .logo-icon { width:36px; height:36px; background:var(--gold); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.15rem; flex-shrink:0; transition:transform var(--transition); }
@@ -99,6 +97,7 @@ nav.scrolled {
     linear-gradient(rgba(245,197,24,.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(245,197,24,.03) 1px, transparent 1px);
   background-size:50px 50px;
+  /* no animation on grid for perf */
 }
 .page-hero-content { position:relative; z-index:2; max-width:1100px; width:100%; }
 .page-hero-label { font-size:.7rem; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:var(--gold); display:flex; align-items:center; gap:.6rem; margin-bottom:.7rem; }
@@ -177,7 +176,7 @@ textarea { resize:vertical; min-height:100px; }
 
 /* ── Ticker ── */
 .ticker-bar { background:var(--gold); padding:.6rem 0; overflow:hidden; white-space:nowrap; }
-.ticker-inner { display:inline-block; animation:ticker 28s linear infinite; }
+.ticker-inner { display:inline-block; animation:ticker 30s linear infinite; will-change:transform; }
 .t-item { display:inline-block; font-family:var(--font-display); font-size:.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--black); margin-right:3rem; }
 .t-item::before { content:'✦  '; }
 @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
@@ -186,7 +185,7 @@ textarea { resize:vertical; min-height:100px; }
 .gold-line { width:60px; height:2px; background:linear-gradient(90deg, transparent, var(--gold), transparent); margin:1rem auto 0; }
 
 /* ── Scroll Reveal ── */
-.rev { opacity:0; transform:translateY(28px); transition:opacity .6s ease, transform .6s ease; }
+.rev { opacity:0; transform:translateY(24px); transition:opacity .55s ease, transform .55s ease; }
 .rev.on { opacity:1; transform:translateY(0); }
 
 /* ── Availability colors ── */
@@ -198,12 +197,11 @@ textarea { resize:vertical; min-height:100px; }
 @keyframes fadeUp   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
 @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
 @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.4} }
-@keyframes pinBounce{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
 @keyframes blink    { 0%,100%{opacity:1} 50%{opacity:.2} }
-@keyframes shimmer  { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
 
 /* ── Skeleton loader ── */
 .skeleton { background:linear-gradient(90deg, var(--dark2) 25%, var(--dark3) 50%, var(--dark2) 75%); background-size:400px 100%; animation:shimmer 1.5s infinite; border-radius:6px; }
+@keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
 
 /* ── Footer ── */
 footer {

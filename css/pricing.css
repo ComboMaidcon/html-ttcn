@@ -1,0 +1,111 @@
+/* ── pricing.html styles ── */
+/* ── Pricing image showcase ── */
+.pricing-img-wrap {
+  border-radius:var(--radius); overflow:hidden;
+  border:1px solid rgba(245,197,24,.2);
+  margin-bottom:3.5rem;
+}
+.pricing-img-wrap img { width:100%; height:auto; display:block; }
+
+/* ── Info cards ── */
+.room-cards {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem;
+  margin-bottom:3.5rem;
+}
+.rc {
+  background:var(--dark2); border:1px solid rgba(245,197,24,.1);
+  border-radius:var(--radius); padding:1.6rem;
+  transition:all var(--transition);
+}
+.rc:hover { border-color:rgba(245,197,24,.3); transform:translateY(-4px); }
+.rc.featured {
+  background:linear-gradient(155deg,#1e1800,#141400 60%,var(--dark2));
+  border-color:var(--gold);
+}
+.rc-emoji { font-size:1.8rem; margin-bottom:.7rem; }
+.rc-name { font-family:'Kanit',sans-serif; font-weight:800; font-size:1rem; margin-bottom:.3rem; }
+.rc-cap { font-size:.78rem; color:var(--muted); margin-bottom:.8rem; }
+.rc-range {
+  display:flex; flex-direction:column; gap:.3rem;
+}
+.rc-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:.35rem 0; border-bottom:1px solid rgba(245,197,24,.06); font-size:.83rem;
+}
+.rc-row:last-child { border:none; }
+.rc-row .label { color:var(--muted); }
+.rc-row .price { font-family:'Kanit',sans-serif; font-weight:700; color:var(--gold); }
+
+/* ── Pricing table (HTML version) ── */
+.ptable-wrap { overflow-x:auto; margin-bottom:2rem; }
+.ptable {
+  width:100%; border-collapse:collapse;
+  border:1px solid rgba(245,197,24,.12); border-radius:var(--radius);
+  overflow:hidden; min-width:700px;
+}
+.ptable th {
+  background:var(--dark2); padding:.9rem 1.1rem;
+  font-family:'Kanit',sans-serif; font-size:.7rem; font-weight:700; letter-spacing:2px;
+  text-transform:uppercase; color:var(--gold); text-align:center;
+  border-bottom:1px solid rgba(245,197,24,.15);
+}
+.ptable th.left { text-align:left; }
+.ptable th.group-header {
+  background:rgba(245,197,24,.06); border-left:1px solid rgba(245,197,24,.1);
+}
+.ptable td {
+  padding:.8rem 1rem; font-size:.85rem; color:var(--white); text-align:center;
+  border-bottom:1px solid rgba(245,197,24,.06);
+}
+.ptable td.time-col { color:var(--muted); font-weight:600; text-align:left; }
+.ptable tr:last-child td { border-bottom:none; }
+.ptable tr:hover td { background:rgba(245,197,24,.03); }
+.ptable .price-val { font-family:'Kanit',sans-serif; font-weight:700; color:var(--gold); }
+.ptable .sub-cap { display:block; font-size:.7rem; color:var(--muted); margin-top:.1rem; }
+
+.table-section { margin-bottom:3.5rem; }
+.table-title {
+  font-family:'Kanit',sans-serif; font-size:1.1rem; font-weight:800;
+  color:var(--white); margin-bottom:1rem; padding:.6rem 1rem;
+  background:var(--dark2); border-left:3px solid var(--gold);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+/* ── Notes ── */
+.notes-box {
+  background:linear-gradient(135deg,rgba(245,197,24,.08),rgba(245,197,24,.03));
+  border:1px solid rgba(245,197,24,.2); border-radius:var(--radius);
+  padding:1.5rem 2rem; margin-bottom:3rem;
+}
+.notes-box h4 { font-family:'Kanit',sans-serif; font-size:.8rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--gold); margin-bottom:1rem; }
+.notes-box ul { list-style:none; display:flex; flex-direction:column; gap:.6rem; }
+.notes-box li { font-size:.9rem; color:var(--muted); display:flex; gap:.7rem; align-items:flex-start; }
+.notes-box li::before { content:'⚠'; color:var(--gold); flex-shrink:0; }
+
+/* ── FAQ ── */
+.faq-list { margin-top:2rem; }
+.faq-item {
+  border:1px solid rgba(245,197,24,.08); border-radius:var(--radius-sm);
+  margin-bottom:.8rem; overflow:hidden; transition:border-color var(--transition);
+}
+.faq-item:hover { border-color:rgba(245,197,24,.2); }
+.faq-q {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1.1rem 1.3rem; cursor:pointer;
+  font-weight:600; font-size:.92rem;
+}
+.faq-q .arrow { color:var(--gold); transition:transform var(--transition); font-size:.8rem; }
+.faq-item.open .faq-q .arrow { transform:rotate(180deg); }
+.faq-a {
+  display:none; padding:0 1.3rem 1.1rem;
+  font-size:.87rem; color:var(--muted); line-height:1.75;
+}
+.faq-item.open .faq-a { display:block; }
+
+@media(max-width:960px) {
+  .room-cards { grid-template-columns:1fr 1fr; }
+  .section { padding:3rem 1.5rem; }
+}
+@media(max-width:600px) {
+  .room-cards { grid-template-columns:1fr; }
+}

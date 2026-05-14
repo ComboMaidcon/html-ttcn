@@ -1,0 +1,7 @@
+/* ── 404.html styles ── */
+.err-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;gap:1.5rem;}
+.err-code{font-family:'Kanit',sans-serif;font-size:clamp(6rem,20vw,12rem);font-weight:800;color:var(--gold);line-height:1;opacity:.15;position:absolute;}
+.err-emoji{font-size:5rem;position:relative;z-index:1;}
+.err-title{font-family:'Kanit',sans-serif;font-size:clamp(1.5rem,4vw,2.5rem);font-weight:800;position:relative;}
+.err-sub{color:var(--muted);max-width:400px;line-height:1.75;position:relative;}
+.err-links{display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center;position:relative;}
