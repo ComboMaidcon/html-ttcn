@@ -1,48 +1,196 @@
 /* ── Reviews page logic ── */
-document.addEventListener('DOMContentLoaded', () => {
-  injectShared({ ticker: false });
+
+injectShared({ ticker: false });
 initPage();
 buildStarPicker();
-  renderStats();
-  renderReviews();
 
-  // Filter buttons
-  document.getElementById('filterBar').addEventListener('click', e => {
-    const btn = e.target.closest('.filter-btn'); if (!btn) return;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentPage = 1;
-    renderReviews();
-  });
-});
-
-/* ════════════════════════════════
-   DATA — localStorage
-   ════════════════════════════════ */
-const RV_KEY  = 'nox_reviews_v1';
-const PER_PAGE = 6;
-let currentPage = 1;
+/* ── Init ── */
+let currentPage  = 1;
 let selectedStar = 0;
-
+let activeFilter = '';
+const PER_PAGE   = 6;
 const STAR_HINTS = ['','Tệ','Không ổn','Bình thường','Tốt','Tuyệt vời! 🎉'];
 
-function getReviews() {
-  try { return JSON.parse(localStorage.getItem(RV_KEY)) || []; }
-  catch { return []; }
+// Load reviews from API / localStorage
+async function loadAndRender() {
+  const sortVal = document.getElementById('sortSel').value;
+  const filterF = activeFilter;
+
+  let data;
+  try {
+    const opts = { page: currentPage };
+    if (filterF === '5' || filterF === '4') opts.minRating = parseInt(filterF);
+    else if (filterF)                        opts.visitType = filterF;
+    data = await apiGetReviews(opts);
+  } catch (err) {
+    console.error('Reviews fetch error:', err);
+    data = { reviews: [], stats: { avg: 0, dist: [], total: 0 }, total: 0 };
+  }
+
+  let reviews = data.reviews || [];
+
+  // Sort client-side (API returns newest by default)
+  if (sortVal === 'highest') reviews = [...reviews].sort((a,b) => b.rating - a.rating);
+  if (sortVal === 'lowest')  reviews = [...reviews].sort((a,b) => a.rating - b.rating);
+
+  renderStats(data.stats);
+  renderReviewCards(reviews, data.total);
 }
 
-function saveReview(rv) {
-  const all = getReviews();
-  all.unshift(rv); // newest first
-  localStorage.setItem(RV_KEY, JSON.stringify(all));
+/* ── Stats panel ── */
+function renderStats(stats) {
+  const bigEl = document.getElementById('statsBig');
+  const barEl = document.getElementById('barList');
+
+  if (!stats || stats.total === 0) {
+    bigEl.innerHTML = `
+      <div style="text-align:center;padding:1rem 0">
+        <div style="font-size:2.5rem;margin-bottom:.5rem">⭐</div>
+        <div style="font-weight:600;color:var(--white);margin-bottom:.3rem">Chưa có đánh giá nào</div>
+        <div style="font-size:.85rem;color:var(--muted)">Hãy là người đầu tiên chia sẻ trải nghiệm!</div>
+      </div>`;
+    barEl.innerHTML = '';
+    return;
+  }
+
+  bigEl.innerHTML = `
+    <div class="stats-score">${stats.avg}</div>
+    <div class="stats-stars">${starsHTML(Math.round(parseFloat(stats.avg)))}</div>
+    <div class="stats-count">${stats.total} đánh giá</div>`;
+
+  const dist = stats.dist || [];
+  barEl.innerHTML = [...dist].reverse().map(d => `
+    <div class="bar-row">
+      <span class="bar-lbl">${d.star}</span>
+      <span class="bar-star">★</span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${stats.total ? Math.round(d.count/stats.total*100) : 0}%"></div>
+      </div>
+      <span class="bar-num">${d.count}</span>
+    </div>`).join('');
 }
 
-/* ════════════════════════════════
-   STAR PICKER
-   ════════════════════════════════ */
+/* ── Review cards ── */
+function renderReviewCards(reviews, total) {
+  const countLbl = document.getElementById('rvCountLbl');
+  const grid     = document.getElementById('rvGrid');
+  const pg       = document.getElementById('pagination');
+
+  countLbl.textContent = total ? `${total} đánh giá` : '';
+
+  if (!reviews.length) {
+    grid.innerHTML = `<div class="rv-empty"><span class="ei">🔍</span>Chưa có đánh giá nào phù hợp.</div>`;
+    pg.innerHTML   = '';
+    return;
+  }
+
+  grid.innerHTML = reviews.map((r, i) => reviewCard(r, i === 0 && currentPage === 1)).join('');
+  document.querySelectorAll('#rvGrid .rv-card').forEach(el => el.classList.add('on'));
+
+  // Pagination
+  const totalPages = Math.ceil(total / PER_PAGE);
+  if (totalPages <= 1) { pg.innerHTML = ''; return; }
+  let pgHTML = '';
+  if (currentPage > 1)     pgHTML += `<button class="pg-btn" onclick="goPage(${currentPage-1})">‹</button>`;
+  for (let i=1; i<=totalPages; i++)
+    pgHTML += `<button class="pg-btn${i===currentPage?' active':''}" onclick="goPage(${i})">${i}</button>`;
+  if (currentPage < totalPages) pgHTML += `<button class="pg-btn" onclick="goPage(${currentPage+1})">›</button>`;
+  pg.innerHTML = pgHTML;
+}
+
+function reviewCard(r, isNew = false) {
+  // Support both API shape (visit_type, room_name) and localStorage shape (type, room)
+  const dateStr   = relativeDate(r.created_at || r.date);
+  const stars     = starsHTML(r.rating);
+  const typeKey   = r.visit_type || r.type || '';
+  const roomName  = r.room_name  || r.room || '';
+  const typeBadge = { couple:'💑 Couple', group:'👫 Nhóm bạn', party:'🎉 Party', solo:'🎮 Solo', work:'💼 Team' }[typeKey] || '';
+  const srcLabel  = r.source ? `· Biết qua ${r.source}` : '';
+  const initials  = r.initial || r.init || (r.name||'?')[0].toUpperCase();
+
+  return `
+  <div class="rv-card${isNew ? ' new-review' : ''}">
+    <div class="rv-head">
+      <div style="display:flex;gap:.8rem;align-items:flex-start">
+        <div class="rv-avatar">${initials}</div>
+        <div class="rv-info">
+          <div class="rv-name">${escHtml(r.name)}</div>
+          <div class="rv-sub">${typeBadge} ${srcLabel}</div>
+        </div>
+      </div>
+      <div class="rv-meta">
+        <div class="rv-stars">${stars}</div>
+        <div class="rv-date">${dateStr}</div>
+      </div>
+    </div>
+    ${roomName ? `<div class="rv-room">📍 ${escHtml(roomName)}</div>` : ''}
+    <div class="rv-text">${escHtml(r.content || r.text || '')}</div>
+  </div>`;
+}
+
+/* ── Submit ── */
+async function submitReview() {
+  const name      = document.getElementById('fName').value.trim();
+  const content   = document.getElementById('fText').value.trim();
+  const roomName  = document.getElementById('fRoom').value;
+  const visitType = document.getElementById('fType').value;
+  const source    = document.getElementById('fSource').value;
+
+  if (!name)           { alert('Vui lòng nhập tên.'); return; }
+  if (!selectedStar)   { alert('Vui lòng chọn số sao.'); return; }
+  if (content.length < 20) { alert('Nội dung tối thiểu 20 ký tự.'); return; }
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true; btn.textContent = 'Đang gửi...';
+
+  try {
+    await apiCreateReview({ name, rating: selectedStar, content, roomName, visitType, source });
+
+    // Reset form
+    document.getElementById('fName').value  = '';
+    document.getElementById('fText').value  = '';
+    document.getElementById('fRoom').value  = '';
+    document.getElementById('fSource').value = '';
+    selectedStar = 0;
+    highlightStars(0);
+    document.getElementById('starHint').textContent = 'Chọn số sao';
+
+    const suc = document.getElementById('submitSuccess');
+    suc.style.display = 'flex';
+    setTimeout(() => suc.style.display = 'none', 4000);
+
+    currentPage = 1;
+    await loadAndRender();
+  } catch (err) {
+    alert(err.message || 'Gửi thất bại, thử lại!');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Gửi đánh giá →';
+  }
+}
+
+/* ── Filter / sort / pagination ── */
+document.getElementById('filterBar').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn'); if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = btn.dataset.f;
+  currentPage  = 1;
+  loadAndRender();
+});
+
+document.getElementById('sortSel').addEventListener('change', () => {
+  currentPage = 1; loadAndRender();
+});
+
+function goPage(n) {
+  currentPage = n;
+  loadAndRender();
+  document.getElementById('rvGrid').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+/* ── Star picker ── */
 function buildStarPicker() {
-  const stars = document.querySelectorAll('.sp-star');
-  stars.forEach(s => {
+  document.querySelectorAll('.sp-star').forEach(s => {
     s.addEventListener('mouseenter', () => highlightStars(+s.dataset.v));
     s.addEventListener('mouseleave', () => highlightStars(selectedStar));
     s.addEventListener('click', () => {
@@ -54,224 +202,32 @@ function buildStarPicker() {
 }
 
 function highlightStars(n) {
-  document.querySelectorAll('.sp-star').forEach(s => {
-    s.classList.toggle('active', +s.dataset.v <= n);
-  });
+  document.querySelectorAll('.sp-star').forEach(s =>
+    s.classList.toggle('active', +s.dataset.v <= n));
 }
 
-/* ════════════════════════════════
-   SUBMIT
-   ════════════════════════════════ */
-function submitReview() {
-  const name = document.getElementById('fName').value.trim();
-  const text = document.getElementById('fText').value.trim();
-  const room = document.getElementById('fRoom').value;
-  const type = document.getElementById('fType').value;
-  const src  = document.getElementById('fSource').value;
-
-  // Validate
-  if (!name)              { shake('fName');   alert('Vui lòng nhập tên của bạn.'); return; }
-  if (!selectedStar)      { shake('starPicker'); alert('Vui lòng chọn số sao.'); return; }
-  if (text.length < 20)   { shake('fText');   alert('Nội dung tối thiểu 20 ký tự.'); return; }
-
-  const rv = {
-    id:       genId(),
-    name,
-    init:     name.trim()[0].toUpperCase(),
-    rating:   selectedStar,
-    room:     room || 'NOX Joy Station',
-    type,
-    source:   src,
-    text,
-    date:     new Date().toISOString(),
-    verified: false,
-  };
-
-  saveReview(rv);
-
-  // Reset form
-  document.getElementById('fName').value  = '';
-  document.getElementById('fText').value  = '';
-  document.getElementById('fRoom').value  = '';
-  document.getElementById('fSource').value = '';
-  selectedStar = 0;
-  highlightStars(0);
-  document.getElementById('starHint').textContent = 'Chọn số sao';
-
-  // Show success
-  const suc = document.getElementById('submitSuccess');
-  suc.style.display = 'flex';
-  setTimeout(() => suc.style.display = 'none', 4000);
-
-  currentPage = 1;
-  renderStats();
-  renderReviews(true); // true = highlight new card
-}
-
-function shake(id) {
-  const el = document.getElementById(id);
-  el.style.animation = 'none';
-  el.offsetHeight;
-  el.style.animation = 'shake .35s ease';
-}
-
-/* ════════════════════════════════
-   STATS
-   ════════════════════════════════ */
-function renderStats() {
-  const reviews = getReviews();
-  const total   = reviews.length;
-  const bigEl   = document.getElementById('statsBig');
-  const barEl   = document.getElementById('barList');
-
-  if (total === 0) {
-    bigEl.innerHTML = `
-      <div class="stats-empty">
-        <div style="font-size:2.5rem;margin-bottom:.5rem">⭐</div>
-        <div style="font-weight:600;color:var(--white);margin-bottom:.3rem">Chưa có đánh giá nào</div>
-        <div>Hãy là người đầu tiên chia sẻ trải nghiệm!</div>
-      </div>`;
-    barEl.innerHTML = '';
-    return;
-  }
-
-  const avg = (reviews.reduce((s,r) => s + r.rating, 0) / total).toFixed(1);
-  const dist = [5,4,3,2,1].map(n => ({
-    star: n,
-    count: reviews.filter(r => r.rating === n).length,
-  }));
-
-  bigEl.innerHTML = `
-    <div class="stats-score">${avg}</div>
-    <div class="stats-stars">${starsHTML(Math.round(avg))}</div>
-    <div class="stats-count">${total} đánh giá</div>`;
-
-  barEl.innerHTML = dist.map(d => `
-    <div class="bar-row">
-      <span class="bar-lbl">${d.star}</span>
-      <span class="bar-star">★</span>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${total ? Math.round(d.count/total*100) : 0}%"></div>
-      </div>
-      <span class="bar-num">${d.count}</span>
-    </div>`).join('');
-}
-
-/* ════════════════════════════════
-   RENDER REVIEWS
-   ════════════════════════════════ */
-function renderReviews(highlightFirst = false) {
-  let reviews = getReviews();
-  const activeF = document.querySelector('.filter-btn.active')?.dataset.f || '';
-  const sort    = document.getElementById('sortSel').value;
-
-  // Filter
-  if (activeF === '5' || activeF === '4') {
-    reviews = reviews.filter(r => r.rating === +activeF);
-  } else if (activeF) {
-    reviews = reviews.filter(r => r.type === activeF);
-  }
-
-  // Sort
-  if (sort === 'highest') reviews = [...reviews].sort((a,b) => b.rating - a.rating);
-  if (sort === 'lowest')  reviews = [...reviews].sort((a,b) => a.rating - b.rating);
-  // 'newest' already sorted (newest first from localStorage)
-
-  // Count label
-  document.getElementById('rvCountLbl').textContent =
-    reviews.length ? `${reviews.length} đánh giá` : '';
-
-  // Paginate
-  const totalPages = Math.ceil(reviews.length / PER_PAGE);
-  const start = (currentPage - 1) * PER_PAGE;
-  const page  = reviews.slice(start, start + PER_PAGE);
-
-  const grid = document.getElementById('rvGrid');
-
-  if (!reviews.length) {
-    grid.innerHTML = `<div class="rv-empty"><span class="ei">🔍</span>Chưa có đánh giá nào phù hợp.</div>`;
-    document.getElementById('pagination').innerHTML = '';
-    return;
-  }
-
-  grid.innerHTML = page.map((r, i) => reviewCard(r, highlightFirst && i === 0)).join('');
-  renderPagination(totalPages);
-  document.querySelectorAll('#rvGrid .rv-card').forEach(el => el.classList.add('on'));
-}
-
-function reviewCard(r, isNew = false) {
-  const dateStr = relativeDate(r.date);
-  const stars   = starsHTML(r.rating);
-  const typeBadge = { couple:'💑 Couple', group:'👫 Nhóm bạn', party:'🎉 Party', solo:'🎮 Solo', work:'💼 Team' }[r.type] || '';
-  const sourceLbl = r.source ? `· Biết qua ${r.source}` : '';
-
-  return `
-  <div class="rv-card${isNew?' new-review':''}">
-    <div class="rv-head">
-      <div style="display:flex;gap:.8rem;align-items:flex-start">
-        <div class="rv-avatar">${r.init}</div>
-        <div class="rv-info">
-          <div class="rv-name">${escHtml(r.name)}</div>
-          <div class="rv-sub">${typeBadge} ${sourceLbl}</div>
-        </div>
-      </div>
-      <div class="rv-meta">
-        <div class="rv-stars">${stars}</div>
-        <div class="rv-date">${dateStr}</div>
-      </div>
-    </div>
-    ${r.room ? `<div class="rv-room">📍 ${escHtml(r.room)}</div>` : ''}
-    <div class="rv-text">${escHtml(r.text)}</div>
-  </div>`;
-}
-
-/* ════════════════════════════════
-   PAGINATION
-   ════════════════════════════════ */
-function renderPagination(total) {
-  const pg = document.getElementById('pagination');
-  if (total <= 1) { pg.innerHTML = ''; return; }
-  let html = '';
-  if (currentPage > 1)
-    html += `<button class="pg-btn" onclick="goPage(${currentPage-1})">‹</button>`;
-  for (let i=1; i<=total; i++)
-    html += `<button class="pg-btn${i===currentPage?' active':''}" onclick="goPage(${i})">${i}</button>`;
-  if (currentPage < total)
-    html += `<button class="pg-btn" onclick="goPage(${currentPage+1})">›</button>`;
-  pg.innerHTML = html;
-}
-
-function goPage(n) {
-  currentPage = n;
-  renderReviews();
-  document.getElementById('rvGrid').scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-/* ════════════════════════════════
-   HELPERS
-   ════════════════════════════════ */
+/* ── Helpers ── */
 function starsHTML(n) {
   return '★'.repeat(Math.max(0,n)) + '☆'.repeat(Math.max(0,5-n));
 }
-
 function relativeDate(iso) {
   if (!iso) return '';
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff/60000);
-  if (m < 1)   return 'Vừa xong';
-  if (m < 60)  return `${m} phút trước`;
+  if (m < 1)  return 'Vừa xong';
+  if (m < 60) return `${m} phút trước`;
   const h = Math.floor(m/60);
-  if (h < 24)  return `${h} giờ trước`;
+  if (h < 24) return `${h} giờ trước`;
   const d = Math.floor(h/24);
-  if (d < 7)   return `${d} ngày trước`;
-  if (d < 30)  return `${Math.floor(d/7)} tuần trước`;
-  return `${Math.floor(d/30)} tháng trước`;
+  if (d < 7)  return `${d} ngày trước`;
+  return new Date(iso).toLocaleDateString('vi-VN');
 }
-
 function escHtml(s) {
   return String(s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
 function genId() { return Math.random().toString(36).slice(2,10); }
+
+/* ── Initial load ── */
+loadAndRender();

@@ -235,7 +235,7 @@ function renderAll() {
 }
 
 function renderRoomCard(room, date) {
-  const booked  = getRoomBookings(room.id, date);
+  const booked  = USE_API ? [] : getRoomBookings(room.id, date); // modal loads real data
   const freeH   = getFreeSlots(room.id, date).reduce((s,sl) => s + sl.end - sl.start, 0);
 
   let cardCls = '', dotCls = '', lbl = '';
@@ -330,9 +330,23 @@ function startTour() {
 /* ════════════════════════════════
    ROOM DETAIL MODAL
    ════════════════════════════════ */
-function openRoomModal(roomId) {
+async function openRoomModal(roomId) {
   const room = ROOMS.find(r => r.id === roomId);
   if (!room) return;
+
+  // Fetch bookings for next 7 days from API
+  const bookingCache = {};
+  try {
+    const today = formatDate(new Date());
+    const apiData = await apiGetBookings(today, roomId);
+    apiData.forEach(b => {
+      const key = b.date || today;
+      if (!bookingCache[key]) bookingCache[key] = [];
+      bookingCache[key].push({ start: parseFloat(b.start_hour), end: parseFloat(b.end_hour) });
+    });
+  } catch {
+    // fallback: will use getRoomBookings per day below
+  }
 
   document.getElementById('rmTitle').textContent =
     `${room.emoji} ${room.name} — Tầng ${room.floor}`;
@@ -376,7 +390,8 @@ function openRoomModal(roomId) {
     const h = 9 + i;
     const cells = days.map(d => {
       const ds   = formatDate(d);
-      const busy = getRoomBookings(roomId, ds).some(b => h >= b.start && h < b.end);
+      const dayBookings = bookingCache[ds] || (USE_API ? [] : getRoomBookings(roomId, ds));
+      const busy = dayBookings.some(b => h >= b.start && h < b.end);
       return busy
         ? `<td class="busy"></td>`
         : `<td class="sched-cell-free-td"></td>`;

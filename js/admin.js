@@ -1,30 +1,41 @@
 /* ── Admin page logic ── */
-const ADMIN_PASS = 'nox2025';
-let filterCat = '';
-let editingId  = null;
 
 /* ── Auth ── */
-function doLogin() {
-  const v = document.getElementById('pwInput').value;
-  if (v === ADMIN_PASS) {
+async function doLogin() {
+  const email    = document.getElementById('emailInput')?.value || 'admin@noxjoystation.com';
+  const password = document.getElementById('pwInput').value;
+
+  try {
+    await apiLogin(email, password);
+    sessionStorage.setItem('nox_admin', '1');
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('adminApp').style.display    = 'block';
     buildCatSelects();
-    render();
-  } else {
+    await render();
+  } catch (err) {
     document.getElementById('loginErr').style.display = 'block';
+    document.getElementById('loginErr').textContent   = `❌ ${err.message}`;
     document.getElementById('pwInput').value = '';
     document.getElementById('pwInput').focus();
   }
 }
 
 function logout() {
+  apiLogout();
+  sessionStorage.removeItem('nox_admin');
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('adminApp').style.display    = 'none';
   document.getElementById('pwInput').value = '';
 }
 
-/* ── Build dynamic cat selects ── */
+document.getElementById('pwInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+/* ── Cat selects ── */
+let filterCat  = '';
+let editingId  = null;
+
 function catsFor(tab) { return MENU_CATS.filter(c => c.tab === tab); }
 
 function buildCatSelects() {
@@ -34,18 +45,21 @@ function buildCatSelects() {
 }
 
 function syncCatSelect(selId, tab) {
-  const sel = document.getElementById(selId);
+  const sel  = document.getElementById(selId);
   const cats = catsFor(tab);
   sel.innerHTML = cats.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
 }
 
 /* ── Stats ── */
-function renderStats() {
-  const items = getMenuItems();
-  const total   = items.length;
-  const avail   = items.filter(i => i.available !== false).length;
-  const drinks  = items.filter(i => i.tab === 'drink').length;
-  const foods   = items.filter(i => i.tab === 'food').length;
+async function renderStats() {
+  let items = [];
+  try { items = await apiGetMenu(); } catch { items = getMenuItems(); }
+
+  const total  = items.length;
+  const avail  = items.filter(i => i.available !== false).length;
+  const drinks = items.filter(i => i.tab === 'drink').length;
+  const foods  = items.filter(i => i.tab === 'food').length;
+
   document.getElementById('statsBar').innerHTML = `
     <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">Tổng số món</div></div>
     <div class="stat-card"><div class="stat-num">${avail}</div><div class="stat-label">Đang có sẵn</div></div>
@@ -54,10 +68,12 @@ function renderStats() {
 }
 
 /* ── Cat filter chips ── */
-function renderCatFilter() {
-  const items = getMenuItems();
+async function renderCatFilter() {
+  let items = [];
+  try { items = await apiGetMenu(); } catch { items = getMenuItems(); }
+
   const usedCats = [...new Set(items.map(i => i.cat))];
-  const cats = MENU_CATS.filter(c => usedCats.includes(c.id));
+  const cats     = MENU_CATS.filter(c => usedCats.includes(c.id));
   let html = `<button class="cf-btn ${filterCat===''?'active':''}" onclick="setFilter('')">Tất cả</button>`;
   cats.forEach(c => {
     html += `<button class="cf-btn ${filterCat===c.id?'active':''}" onclick="setFilter('${c.id}')">${c.icon} ${c.name}</button>`;
@@ -65,34 +81,35 @@ function renderCatFilter() {
   document.getElementById('catFilter').innerHTML = html;
 }
 
-function setFilter(cat) {
-  filterCat = cat;
-  renderCatFilter();
-  renderList();
-}
+function setFilter(cat) { filterCat = cat; render(); }
 
 /* ── Items list ── */
-function renderList() {
-  let items = getMenuItems();
+async function renderList() {
+  let items = [];
+  try { items = await apiGetMenu(); } catch { items = getMenuItems(); }
   if (filterCat) items = items.filter(i => i.cat === filterCat);
+
   const wrap = document.getElementById('itemsList');
-  if (!items.length) { wrap.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted)">Không có món nào.</div>`; return; }
+  if (!items.length) {
+    wrap.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted)">Không có món nào.</div>`;
+    return;
+  }
 
   wrap.innerHTML = items.map(item => {
-    const cat  = MENU_CATS.find(c => c.id === item.cat);
+    const cat   = MENU_CATS.find(c => c.id === item.cat);
     const avail = item.available !== false;
-    const tabLabel = item.tab === 'drink' ? '🧃 Uống' : '🍕 Ăn';
     return `
-    <div class="item-row ${avail ? '' : 'unavail'}">
+    <div class="item-row ${avail?'':'unavail'}">
       <div>
         <div class="ir-name">${item.name}</div>
-        ${item.desc || item.variants ? `<div class="ir-sub">${[item.desc, item.variants].filter(Boolean).join(' · ')}</div>` : ''}
+        ${item.desc||item.variants?`<div class="ir-sub">${[item.desc,item.variants].filter(Boolean).join(' · ')}</div>`:''}
       </div>
       <div class="ir-price">${item.price}K</div>
-      <div class="ir-cat col-cat">${cat ? cat.icon + ' ' + cat.name : item.cat}</div>
-      <div class="ir-tab">${tabLabel}</div>
+      <div class="ir-cat col-cat">${cat?cat.icon+' '+cat.name:item.cat}</div>
+      <div class="ir-tab">${item.tab==='drink'?'🧃 Uống':'🍕 Ăn'}</div>
       <div class="ir-avail">
-        <button class="avail-toggle ${avail?'on':'off'}" onclick="toggleAvail('${item.id}','${!avail}')"></button>
+        <button class="avail-toggle ${avail?'on':'off'}"
+          onclick="toggleAvail('${item.id}',${!avail})"></button>
         <span style="color:${avail?'#4ade80':'#f87171'}">${avail?'Có':'Hết'}</span>
       </div>
       <div class="ir-actions">
@@ -103,45 +120,62 @@ function renderList() {
   }).join('');
 }
 
-function render() { renderStats(); renderCatFilter(); renderList(); }
+async function render() {
+  await Promise.all([renderStats(), renderCatFilter(), renderList()]);
+}
 
 /* ── Add ── */
-function doAdd() {
-  const name  = document.getElementById('aName').value.trim();
-  const price = parseInt(document.getElementById('aPrice').value);
-  const tab   = document.getElementById('aTab').value;
-  const cat   = document.getElementById('aCat').value;
-  const desc  = document.getElementById('aDesc').value.trim();
+async function doAdd() {
+  const name     = document.getElementById('aName').value.trim();
+  const price    = parseInt(document.getElementById('aPrice').value);
+  const tab      = document.getElementById('aTab').value;
+  const cat      = document.getElementById('aCat').value;
+  const desc     = document.getElementById('aDesc').value.trim();
   const variants = document.getElementById('aVariants').value.trim();
 
-  if (!name)      { showToast('Chưa nhập tên món!', true); return; }
+  if (!name)           { showToast('Chưa nhập tên món!', true); return; }
   if (!price || price < 1) { showToast('Giá không hợp lệ!', true); return; }
 
-  addMenuItem({ name, price, tab, cat, desc: desc||undefined, variants: variants||undefined, available: true });
-  ['aName','aDesc','aVariants'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('aPrice').value = '';
-  render();
-  showToast(`✅ Đã thêm "${name}"`);
+  try {
+    await apiAddMenuItem({ name, price, tab, cat: cat, desc: desc||undefined, variants: variants||undefined, available: true });
+    ['aName','aDesc','aVariants'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('aPrice').value = '';
+    await render();
+    showToast(`✅ Đã thêm "${name}"`);
+  } catch (err) {
+    showToast(err.message || 'Thêm thất bại', true);
+  }
 }
 
 /* ── Toggle available ── */
-function toggleAvail(id, val) {
-  updateMenuItem(id, { available: val === 'true' });
-  render();
+async function toggleAvail(id, val) {
+  try {
+    await apiUpdateMenuItem(id, { available: val });
+    await render();
+  } catch (err) {
+    showToast(err.message, true);
+  }
 }
 
 /* ── Delete ── */
-function doDelete(id, name) {
+async function doDelete(id, name) {
   if (!confirm(`Xóa "${name}"? Không thể hoàn tác.`)) return;
-  deleteMenuItem(id);
-  render();
-  showToast(`🗑 Đã xóa "${name}"`);
+  try {
+    await apiDeleteMenuItem(id);
+    await render();
+    showToast(`🗑 Đã xóa "${name}"`);
+  } catch (err) {
+    showToast(err.message, true);
+  }
 }
 
 /* ── Edit modal ── */
-function openEdit(id) {
-  const item = getMenuItems().find(i => i.id === id);
+async function openEdit(id) {
+  let items = [];
+  try { items = await apiGetMenu(); } catch { items = getMenuItems(); }
+  const item = items.find(i => i.id === id);
   if (!item) return;
+
   editingId = id;
   document.getElementById('eName').value     = item.name;
   document.getElementById('ePrice').value    = item.price;
@@ -158,42 +192,43 @@ function closeModal() {
   editingId = null;
 }
 
-function doSaveEdit() {
+async function doSaveEdit() {
   if (!editingId) return;
-  const name  = document.getElementById('eName').value.trim();
-  const price = parseInt(document.getElementById('ePrice').value);
-  const tab   = document.getElementById('eTab').value;
-  const cat   = document.getElementById('eCat').value;
-  const desc  = document.getElementById('eDesc').value.trim();
+  const name     = document.getElementById('eName').value.trim();
+  const price    = parseInt(document.getElementById('ePrice').value);
+  const tab      = document.getElementById('eTab').value;
+  const cat      = document.getElementById('eCat').value;
+  const desc     = document.getElementById('eDesc').value.trim();
   const variants = document.getElementById('eVariants').value.trim();
+
   if (!name || !price) { showToast('Thiếu tên hoặc giá!', true); return; }
-  updateMenuItem(editingId, { name, price, tab, cat, desc: desc||undefined, variants: variants||undefined });
-  closeModal();
-  render();
-  showToast(`✅ Đã cập nhật "${name}"`);
+
+  try {
+    await apiUpdateMenuItem(editingId, {
+      name, price, tab, cat,
+      desc: desc||undefined, variants: variants||undefined
+    });
+    closeModal();
+    await render();
+    showToast(`✅ Đã cập nhật "${name}"`);
+  } catch (err) {
+    showToast(err.message, true);
+  }
 }
 
-/* Click outside modal to close */
 document.getElementById('editModal').addEventListener('click', e => {
   if (e.target === document.getElementById('editModal')) closeModal();
 });
 
-/* ── Reset ── */
-function confirmReset() {
-  if (confirm('Reset toàn bộ menu về mặc định ban đầu? Tất cả thay đổi sẽ mất.')) {
-    resetMenuToDefault();
-    render();
-    showToast('↺ Đã reset về mặc định');
-  }
-}
-
 /* ── Export ── */
-function exportData() {
-  const data = JSON.stringify(getMenuItems(), null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'nox-menu-' + new Date().toISOString().split('T')[0] + '.json';
+async function exportData() {
+  let items = [];
+  try { items = await apiGetMenu(); } catch { items = getMenuItems(); }
+  const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+  const a    = Object.assign(document.createElement('a'), {
+    href:     URL.createObjectURL(blob),
+    download: `nox-menu-${new Date().toISOString().split('T')[0]}.json`,
+  });
   a.click();
   showToast('📥 Đã export JSON');
 }
@@ -202,17 +237,14 @@ function exportData() {
 function showToast(msg, err = false) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className = 'toast show' + (err ? ' err' : '');
+  t.className   = `toast show${err?' err':''}`;
   setTimeout(() => t.className = 'toast', 2600);
 }
 
-/* Auto-login if already authenticated this session */
-if (sessionStorage.getItem('nox_admin') === '1') {
+/* ── Auto-login if session active ── */
+if (apiIsLoggedIn() && sessionStorage.getItem('nox_admin') === '1') {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('adminApp').style.display    = 'block';
   buildCatSelects();
   render();
 }
-document.getElementById('pwInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doLogin();
-});

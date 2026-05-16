@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phòng chơi – NOX Joy Station</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1/dist/driver.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/rooms.css">
+</head>
+<body>
+
+  <!-- Hero -->
+  <div class="page-hero">
+    <div class="page-hero-bg"></div>
+    <div class="page-hero-grid"></div>
+    <div class="page-hero-content">
+      <div class="page-hero-label">Danh sách phòng</div>
+      <h1>15 phòng — <span>3 tầng</span></h1>
+      <p>Tầng 4 · Cine Box &nbsp;|&nbsp; Tầng 5–6 · Game Rooms<br>
+         Private 100% — không chia sẻ với khách lạ.</p>
+    </div>
+  </div>
+
+  <!-- Availability checker -->
+  <div class="checker-wrap">
+    <div class="checker-inner">
+      <div class="checker-title">🔍 Kiểm tra phòng trống</div>
+      <div class="checker-form">
+        <div class="checker-field">
+          <span class="checker-label">Ngày</span>
+          <input type="date" id="checkDate">
+        </div>
+        <div class="checker-field">
+          <span class="checker-label">Từ giờ</span>
+          <select id="checkStart"></select>
+        </div>
+        <div class="checker-field">
+          <span class="checker-label">Đến giờ</span>
+          <select id="checkEnd"></select>
+        </div>
+        <div class="checker-field">
+          <span class="checker-label">Loại phòng</span>
+          <select id="checkType">
+            <option value="">Tất cả loại</option>
+          </select>
+        </div>
+        <button class="btn-check" id="btnCheck">Kiểm tra ⚡</button>
+        <button class="btn-reset"  id="btnReset">Xóa</button>
+      </div>
+      <div class="checker-status" id="checkerStatus"></div>
+    </div>
+  </div>
+
+  <!-- Rooms -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="floor-tabs"   id="floorTabs"></div>
+      <div class="type-filters" id="typeFilters"></div>
+      <div id="roomsWrap"></div>
+    </div>
+  </section>
+
+  <!-- Room detail modal -->
+  <div class="modal-backdrop" id="roomModalBackdrop"
+       onclick="if(event.target===this)closeRoomModal()">
+    <div class="room-modal" id="roomModal">
+      <div class="rm-header">
+        <div class="rm-title" id="rmTitle"></div>
+        <button class="rm-close" onclick="closeRoomModal()">✕</button>
+      </div>
+      <div class="rm-body">
+        <div class="rm-info-row"     id="rmInfoRow"></div>
+        <div class="rm-timeline-label">Lịch hôm nay (9:00 → 2:00 sáng)</div>
+        <div class="rm-tl-bar"       id="rmTlBar"></div>
+        <div class="rm-tl-labels">
+          <span>9h</span><span>12h</span><span>15h</span>
+          <span>18h</span><span>21h</span><span>0h</span><span>2h</span>
+        </div>
+        <div class="rm-slots-title">Khung giờ chi tiết</div>
+        <div class="rm-slot-list" id="rmSlotList"></div>
+      </div>
+      <div class="rm-footer">
+        <div class="rm-price-big" id="rmPrice"></div>
+        <button class="btn btn-gold" style="margin-left:auto" id="rmBookBtn">
+          Đặt phòng này →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../js/config.js" defer></script>
+  <script src="../js/api.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/driver.js@1/dist/driver.iife.js"></script>
+  <script src="../js/utils.js"      defer></script>
+  <script src="../js/rooms-data.js" defer></script>
+  <script src="../js/bookings.js"   defer></script>
+  <script src="../js/init.js"       defer></script>
+  <script src="../js/components.js" defer></script>
+  <script src="../js/rooms.js"      defer></script>
+</body>
+</html>

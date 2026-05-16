@@ -50,8 +50,11 @@ ROOMS.forEach(r => {
     <div class="selected-room ${r.id === preRoom ? 'active' : ''}"
          data-rid="${r.id}" onclick="selectRoom('${r.id}')">
       <span class="sr-emoji">${r.emoji}</span>
-      <span class="sr-name">${r.name} <small style="color:var(--muted);font-weight:400">T${r.floor}</small></span>
-      <span class="sr-price">${r.price}K/h</span>
+      <div>
+        <div class="sr-name">${r.name}</div>
+        <div class="sr-price">Từ ${r.price}K/giờ</div>
+        <div class="sr-cap">👥 ${r.capacity}</div>
+      </div>
     </div>`);
 });
 
@@ -62,7 +65,16 @@ function selectRoom(id) {
   roomSel.value = id;
   document.querySelectorAll('.selected-room').forEach(el =>
     el.classList.toggle('active', el.dataset.rid === id));
-  updatePrice(); checkConflict();
+
+  // Cập nhật max người theo loại phòng
+  const room = ROOMS.find(r => r.id === id);
+  const maxP = { small:2, 'medium-classic':4, 'medium-deluxe':4, big:8, cine:3, suite:4 }[room?.type] || 10;
+  const peopleInput = document.getElementById('f-people');
+  peopleInput.max = maxP;
+  if (parseInt(peopleInput.value) > maxP) peopleInput.value = maxP;
+
+  updatePrice();
+  checkConflict();
 }
 
 roomSel.addEventListener('change', () => {
@@ -122,7 +134,7 @@ function updatePrice() {
 }
 
 /* ── Conflict check ── */
-function checkConflict() {
+async function checkConflict() {
   const roomId   = roomSel.value;
   const date     = document.getElementById('f-date').value;
   const start    = parseFloat(startSel.value);
@@ -132,7 +144,8 @@ function checkConflict() {
 
   if (!roomId || !date) { warn.style.display = 'none'; return; }
 
-  if (!isRoomFree(roomId, date, start, end)) {
+  const free = await apiIsRoomFree(roomId, date, start, end);
+  if (!free) {
     warn.style.display = 'block';
     warn.innerHTML = `⚠️ Phòng <strong>${ROOMS.find(r=>r.id===roomId)?.name}</strong>
       đã có người đặt trong khung giờ này. Vui lòng chọn giờ khác hoặc
@@ -146,7 +159,10 @@ updatePrice();
 checkConflict();
 
 /* ── Submit ── */
-function submitBooking() {
+async function submitBooking() {
+  // Reset errors
+  clearErrors();
+
   const name     = document.getElementById('f-name').value.trim();
   const phone    = document.getElementById('f-phone').value.trim();
   const date     = document.getElementById('f-date').value;
@@ -157,41 +173,189 @@ function submitBooking() {
   const roomId   = roomSel.value;
   const note     = document.getElementById('f-note').value.trim();
 
-  if (!name)   { alert('Vui lòng nhập tên.'); return; }
-  if (!phone)  { alert('Vui lòng nhập số điện thoại.'); return; }
-  if (!date)   { alert('Vui lòng chọn ngày.'); return; }
-  if (!roomId) { alert('Vui lòng chọn phòng.'); return; }
+  // Validate từng field
+  let hasError = false;
 
-  if (!isRoomFree(roomId, date, start, end)) {
-    alert('Phòng đã có người đặt trong khung giờ này!');
-    return;
+  if (!name) {
+    showFieldError('f-name', 'err-name', 'Vui lòng nhập họ tên');
+    hasError = true;
+  }
+
+  if (!/^\d{10}$/.test(phone)) {
+    showFieldError('f-phone', 'err-phone', 'Số điện thoại phải đúng 10 chữ số');
+    hasError = true;
   }
 
   const room = ROOMS.find(r => r.id === roomId);
-  addBooking({ roomId, date, start, end, name, people, phone, note });
+  const maxPeople = {
+    'small':          2,
+    'medium-classic': 4,
+    'medium-deluxe':  4,
+    'big':            8,
+    'cine':           3,
+    'suite':          4,
+  }[room?.type] || 10;
 
-  const dateStr = parseLocalDate(date).toLocaleDateString('vi-VN',
-    { weekday:'long', day:'numeric', month:'numeric', year:'numeric' });
+  if (people > maxPeople) {
+    alert(`Phòng ${room?.badge} chỉ chứa tối đa ${maxPeople} người!`);
+    return;
+  }
 
-  document.getElementById('bookingDetails').innerHTML = `
-    <div class="md-row"><span>Phòng</span>
-      <span class="md-val">${room.name} ${room.emoji}</span></div>
-    <div class="md-row"><span>Tầng</span>
-      <span class="md-val">Tầng ${room.floor}</span></div>
-    <div class="md-row"><span>Ngày</span>
-      <span class="md-val">${dateStr}</span></div>
-    <div class="md-row"><span>Giờ</span>
-      <span class="md-val">${formatHour(start)} – ${formatHour(end)}</span></div>
-    <div class="md-row"><span>Thời gian</span>
-      <span class="md-val">${duration}h</span></div>
-    <div class="md-row"><span>Số người</span>
-      <span class="md-val">${people} người</span></div>
-    <div class="md-row"><span>Liên hệ</span>
-      <span class="md-val">${phone}</span></div>`;
+  if (!date) {
+    showFormAlert('Vui lòng chọn ngày đến');
+    hasError = true;
+  }
 
-  document.getElementById('successModal').classList.add('visible');
+  if (!roomId) {
+    showFieldError('f-room', 'err-room', 'Vui lòng chọn phòng');
+    hasError = true;
+  }
+
+  if (roomId) {
+    const room   = ROOMS.find(r => r.id === roomId);
+    const maxP   = { small:2, 'medium-classic':4, 'medium-deluxe':4, big:8, cine:3, suite:4 }[room?.type] || 10;
+    if (people < 1) {
+      showFieldError('f-people', 'err-people', 'Số người tối thiểu là 1');
+      hasError = true;
+    } else if (people > maxP) {
+      showFieldError('f-people', 'err-people', `Phòng ${room?.badge} chỉ chứa tối đa ${maxP} người`);
+      hasError = true;
+    }
+  }
+
+  if (hasError) {
+    showFormAlert('Vui lòng kiểm tra lại thông tin bên trên');
+    // Scroll lên chỗ lỗi đầu tiên
+    document.querySelector('.invalid')?.scrollIntoView({ behavior:'smooth', block:'center' });
+    return;
+  }
+
+  // Check trùng lịch
+  const btn = document.querySelector('.btn-submit');
+  btn.disabled = true;
+  btn.textContent = 'Đang kiểm tra...';
+
+  try {
+    const free = await apiIsRoomFree(roomId, date, start, end);
+    if (!free) {
+      showFormAlert('Phòng đã có người đặt trong khung giờ này. Vui lòng chọn giờ khác!');
+      btn.disabled = false;
+      btn.textContent = '🎮 Xác nhận đặt phòng';
+      return;
+    }
+
+    btn.textContent = 'Đang đặt phòng...';
+    const room = ROOMS.find(r => r.id === roomId);
+    await apiCreateBooking({ roomId, date, startHour: start, endHour: end, name, phone, people, note });
+
+    // Success
+    document.getElementById('bookingDetails').innerHTML = `
+      <div class="md-row"><span>Phòng</span><span class="md-val">${room.name} ${room.emoji}</span></div>
+      <div class="md-row"><span>Tầng</span><span class="md-val">Tầng ${room.floor}</span></div>
+      <div class="md-row"><span>Ngày</span><span class="md-val">${parseLocalDate(date).toLocaleDateString('vi-VN', { weekday:'long', day:'numeric', month:'numeric' })}</span></div>
+      <div class="md-row"><span>Giờ</span><span class="md-val">${formatHour(start)} – ${formatHour(end)}</span></div>
+      <div class="md-row"><span>Số người</span><span class="md-val">${people} người</span></div>
+      <div class="md-row"><span>Liên hệ</span><span class="md-val">${phone}</span></div>`;
+    document.getElementById('successModal').classList.add('visible');
+
+  } catch (err) {
+    showFormAlert(err.message || 'Đặt phòng thất bại, vui lòng thử lại!');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🎮 Xác nhận đặt phòng';
+  }
 }
 
-document.getElementById('successModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) e.currentTarget.classList.remove('visible');
+/* ── Validation helpers ── */
+function showFieldError(inputId, errId, msg) {
+  const input = document.getElementById(inputId);
+  const err   = document.getElementById(errId);
+  if (input) { input.classList.add('invalid'); input.classList.remove('valid'); }
+  if (err)   { err.textContent = `⚠ ${msg}`; err.classList.add('visible'); }
+}
+
+function showFormAlert(msg) {
+  const el = document.getElementById('formAlert');
+  if (!el) return;
+  el.textContent = `⚠ ${msg}`;
+  el.classList.add('visible', 'error');
+}
+
+function clearErrors() {
+  document.querySelectorAll('.invalid').forEach(el => {
+    el.classList.remove('invalid');
+    el.classList.add('valid');
+  });
+  document.querySelectorAll('.field-error').forEach(el =>
+    el.classList.remove('visible'));
+  const alert = document.getElementById('formAlert');
+  if (alert) alert.classList.remove('visible','error','success');
+}
+
+// Clear lỗi khi user bắt đầu sửa
+['f-name','f-phone','f-room','f-people','f-date'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', () => {
+    el.classList.remove('invalid');
+    el.classList.add('valid');
+    const errId = 'err-' + id.replace('f-','');
+    document.getElementById(errId)?.classList.remove('visible');
+    document.getElementById('formAlert')?.classList.remove('visible');
+  });
+});
+
+/* ── Inline validation helpers ── */
+function fieldOk(grpId, msgId, msg = '✓') {
+  const grp = document.getElementById(grpId);
+  const msg_el = document.getElementById(msgId);
+  if (!grp) return;
+  grp.className = grp.className.replace(/field-error|field-ok/g,'').trim() + ' field-ok';
+  if (msg_el) { msg_el.textContent = msg; }
+}
+
+function fieldErr(grpId, msgId, msg) {
+  const grp = document.getElementById(grpId);
+  const msg_el = document.getElementById(msgId);
+  if (!grp) return;
+  grp.className = grp.className.replace(/field-error|field-ok/g,'').trim() + ' field-error';
+  if (msg_el) { msg_el.textContent = msg; }
+}
+
+function fieldReset(grpId) {
+  const grp = document.getElementById(grpId);
+  if (!grp) return;
+  grp.className = grp.className.replace(/field-error|field-ok/g,'').trim();
+}
+
+/* ── Real-time validation ── */
+document.getElementById('f-name').addEventListener('input', function() {
+  this.value.trim().length >= 2
+    ? fieldOk('grp-name',  'msg-name',  '✓ Hợp lệ')
+    : fieldErr('grp-name', 'msg-name',  'Vui lòng nhập tên (tối thiểu 2 ký tự)');
+});
+
+document.getElementById('f-phone').addEventListener('input', function() {
+  /^\d{10}$/.test(this.value.trim())
+    ? fieldOk('grp-phone',  'msg-phone',  '✓ Số hợp lệ')
+    : fieldErr('grp-phone', 'msg-phone',  'Số điện thoại phải đúng 10 chữ số');
+});
+
+document.getElementById('f-people').addEventListener('input', function() {
+  const roomId = document.getElementById('f-room').value;
+  const room   = ROOMS.find(r => r.id === roomId);
+  const maxP   = { small:2, 'medium-classic':4, 'medium-deluxe':4, big:8, cine:3, suite:4 }[room?.type] || 10;
+  const val    = parseInt(this.value);
+  if (!val || val < 1) {
+    fieldErr('grp-people', 'msg-people', 'Số người phải ít nhất 1');
+  } else if (val > maxP) {
+    fieldErr('grp-people', 'msg-people', `Phòng này tối đa ${maxP} người`);
+  } else {
+    fieldOk('grp-people', 'msg-people', `✓ Hợp lệ (tối đa ${maxP} người)`);
+  }
+});
+
+document.getElementById('f-room').addEventListener('change', function() {
+  this.value
+    ? fieldOk('grp-room',  'msg-room', '✓ Đã chọn phòng')
+    : fieldErr('grp-room', 'msg-room', 'Vui lòng chọn phòng');
 });
