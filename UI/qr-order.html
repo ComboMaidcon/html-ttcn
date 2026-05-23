@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gọi Món – NOX Joy Station</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    body { background: var(--dark); padding-bottom: 80px; }
+    .header { padding: 1rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,.05); position: sticky; top:0; background:var(--dark); z-index:10; }
+    .room-title { color: var(--gold); font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 700; }
+    
+    .menu-list { padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+    .menu-item { background: var(--dark2); border-radius: var(--radius); padding: 1rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,.05); }
+    .m-info { flex: 1; }
+    .m-name { font-weight: 600; font-size: 1.1rem; }
+    .m-price { color: var(--gold); margin-top: .2rem; }
+    .m-actions { display: flex; align-items: center; gap: .8rem; }
+    .btn-qty { background: rgba(255,255,255,.1); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .m-qty { font-weight: 600; width: 20px; text-align: center; }
+
+    .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--dark2); padding: 1rem; border-top: 1px solid rgba(245,197,24,.2); display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+    .cart-total { font-weight: 700; font-size: 1.2rem; color: var(--gold); }
+    .btn-order { background: var(--gold); color: black; border: none; padding: .8rem 1.5rem; border-radius: 2rem; font-weight: 600; cursor: pointer; }
+    .btn-order:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Modal xác thực */
+    .modal { display: none; position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,.8); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+    .modal.show { display: flex; }
+    .modal-content { background: var(--dark2); padding: 2rem; border-radius: var(--radius); width: 100%; max-width: 400px; text-align: center; border: 1px solid rgba(245,197,24,.2); }
+    .modal h3 { color: var(--gold); margin-bottom: 1rem; }
+    
+    /* Toast */
+    .toast { position:fixed; bottom:2rem; left:50%; transform:translate(-50%, 10px); background:var(--dark2); border:1px solid rgba(74,222,128,.3); border-radius:var(--radius-sm); padding:.8rem 1.4rem; font-size:.9rem; font-weight:600; color:#4ade80; z-index:9999; opacity:0; transition:all .3s; pointer-events:none; white-space:nowrap; }
+    .toast.show { opacity:1; transform:translate(-50%, 0); }
+    .toast.err  { border-color:rgba(248,113,113,.4); color:#f87171; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="room-title" id="roomTitle">Đang tải phòng...</div>
+    <div style="font-size:.9rem; color:var(--muted); margin-top:.3rem">Vui lòng chọn món để đặt vào phòng</div>
+  </div>
+
+  <div class="menu-list" id="menuList">
+    <div style="text-align:center; padding:2rem; color:var(--muted)">Đang tải thực đơn...</div>
+  </div>
+
+  <div class="cart-bar">
+    <div>
+      <div style="font-size:.8rem; color:var(--muted)">Tổng cộng</div>
+      <div class="cart-total" id="cartTotal">0đ</div>
+    </div>
+    <button class="btn-order" id="btnOrder" onclick="openAuthModal()" disabled>Đặt món ngay</button>
+  </div>
+
+  <div class="modal" id="authModal">
+    <div class="modal-content">
+      <h3>Xác nhận Đặt món</h3>
+      <p style="color:var(--muted); margin-bottom:1.5rem; font-size:.9rem">Bạn có chắc chắn muốn đặt các món này vào phòng không?</p>
+      <div style="display:flex; gap:1rem">
+        <button class="an-btn" style="flex:1" onclick="closeAuthModal()">Hủy</button>
+        <button class="btn-order" style="flex:1; border-radius:4px" onclick="submitOrder()">Chắc chắn</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/qr-order.js"></script>
+</body>
+</html>

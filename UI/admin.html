@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -18,24 +19,172 @@
       <div class="login-logo">🎮</div>
       <div class="login-title">NOX <span>Admin</span></div>
       <div class="login-sub">Quản lý menu & thực đơn</div>
+      <input type="email" id="emailInput" placeholder="Nhập email (vd: admin@noxjoystation.com)" style="margin-bottom:10px">
       <input type="password" id="pwInput" placeholder="Nhập mật khẩu...">
       <div class="login-err" id="loginErr">❌ Sai mật khẩu. Thử lại!</div>
       <button class="btn-add" onclick="doLogin()">Đăng nhập →</button>
-      <div class="login-hint">Mật khẩu mặc định: <strong>nox2025</strong></div>
+      <div class="login-hint">Email mặc định: <strong>admin@noxjoystation.com</strong><br>Mật khẩu mặc định: <strong>nox2025</strong></div>
     </div>
   </div>
 
   <!-- Admin app -->
   <div id="adminApp">
     <div class="admin-header">
-      <div class="admin-logo">NOX <span>Admin</span> · Menu</div>
-      <div class="admin-nav">
-        <button class="an-btn"        onclick="location.href='menu.html'">👁 Xem menu</button>
+      <div class="admin-logo">NOX <span>Admin</span></div>
+      <div class="admin-nav" style="display:flex; align-items:center; gap:15px">
+        <div id="userInfo" style="color:var(--gold); font-size:0.9rem;"></div>
         <button class="an-btn"        onclick="exportData()">📥 Export JSON</button>
         <button class="an-btn danger" onclick="confirmReset()">↺ Reset mặc định</button>
         <button class="an-btn"        onclick="logout()">Đăng xuất</button>
       </div>
     </div>
+
+    <div class="admin-layout">
+      <!-- Sidebar -->
+      <div class="admin-sidebar">
+        <button class="sidebar-tab"        data-tab="reports">📊 Báo cáo</button>
+        <button class="sidebar-tab"        data-tab="invoices">🧾 Hoá đơn</button>
+        <button class="sidebar-tab active" data-tab="bookings">📅 Đặt phòng</button>
+        <button class="sidebar-tab"        data-tab="kitchen">🍳 Bếp / Đồ ăn</button>
+        <button class="sidebar-tab"        data-tab="menu">🍔 Thực đơn</button>
+        <button class="sidebar-tab"        data-tab="rooms">🚪 Phòng</button>
+        <button class="sidebar-tab"        data-tab="reviews">⭐ Đánh giá</button>
+      </div>
+
+      <!-- Main Content -->
+      <div class="admin-main">
+        
+        <!-- ================= REPORTS TAB ================= -->
+        <div class="admin-tab-content" id="tab-reports">
+          <div class="tab-header" style="flex-wrap:wrap;gap:1rem;">
+            <h2>Báo cáo & Thống kê</h2>
+            <div style="display:flex;gap:.5rem;align-items:center;">
+              <input type="date" id="repStart" class="an-btn" style="padding:.4rem">
+              <span style="color:var(--muted)">-</span>
+              <input type="date" id="repEnd" class="an-btn" style="padding:.4rem">
+              <button class="btn-add" onclick="renderReportsTab()">Lọc & Làm mới</button>
+            </div>
+          </div>
+          
+          <div class="stats-bar" id="reportStats">
+            <!-- Stats will be injected here -->
+          </div>
+
+          <div class="charts-grid">
+            <div class="chart-card">
+              <div class="chart-title">Doanh thu 6 tháng gần nhất</div>
+              <canvas id="revenueChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Số lượt gọi Món ăn/Đồ uống (Top 5)</div>
+              <canvas id="menuChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Tần suất đặt Phòng (Top 5)</div>
+              <canvas id="roomsChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= INVOICES TAB ================= -->
+        <div class="admin-tab-content" id="tab-invoices">
+          <div class="tab-header">
+            <h2>Quản lý Hoá đơn</h2>
+            <div style="display:flex; gap:1rem">
+              <select class="sort-sel" id="invSort" onchange="renderInvoicesTab()">
+                <option value="newest">Mới nhất</option>
+                <option value="oldest">Cũ nhất</option>
+                <option value="highest">Giá trị cao nhất</option>
+                <option value="lowest">Giá trị thấp nhất</option>
+              </select>
+              <button class="btn-add" onclick="renderInvoicesTab()">↻ Làm mới</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Khách hàng / Phòng</th>
+                  <th>Giờ chơi</th>
+                  <th>Chi tiết Dịch vụ</th>
+                  <th>Tiền phòng</th>
+                  <th>Tiền Dịch vụ</th>
+                  <th>Tổng thu</th>
+                  <th>Ngày lập</th>
+                </tr>
+              </thead>
+              <tbody id="invoicesList"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ================= KITCHEN TAB ================= -->
+        <div class="admin-tab-content" id="tab-kitchen">
+          <div class="tab-header">
+            <h2>Quản lý Đơn Món (Từ các phòng)</h2>
+            <button class="btn-add" onclick="renderKitchenTab()">↻ Làm mới</button>
+          </div>
+          <div class="add-grid" id="kitchenList">
+            <!-- Order cards will be generated here -->
+          </div>
+        </div>
+
+        <!-- ================= BOOKINGS TAB ================= -->
+        <div class="admin-tab-content active" id="tab-bookings">
+          <div class="tab-header">
+            <h2>Quản lý Đặt phòng</h2>
+            <button class="btn-add" onclick="renderBookingsTab()">↻ Làm mới</button>
+          </div>
+          <div class="items-table-wrap">
+            <div class="it-head bookings-head">
+              <span>Ngày</span>
+              <span>Giờ</span>
+              <span>Phòng</span>
+              <span>Khách hàng</span>
+              <span>Trạng thái</span>
+              <span>Hành động</span>
+            </div>
+            <div id="bookingsList">Đang tải...</div>
+          </div>
+        </div>
+
+        <!-- ================= ROOMS TAB ================= -->
+        <div class="admin-tab-content" id="tab-rooms">
+          <div class="tab-header">
+            <h2>Quản lý Phòng</h2>
+          </div>
+          <div class="items-table-wrap">
+            <div class="it-head rooms-head">
+              <span>Tên phòng</span>
+              <span>Tầng</span>
+              <span>Loại</span>
+              <span>Trạng thái</span>
+              <span>Hành động</span>
+            </div>
+            <div id="roomsList">Đang tải...</div>
+          </div>
+        </div>
+
+        <!-- ================= REVIEWS TAB ================= -->
+        <div class="admin-tab-content" id="tab-reviews">
+          <div class="tab-header">
+            <h2>Quản lý Đánh giá</h2>
+          </div>
+          <div class="items-table-wrap">
+            <div class="it-head reviews-head">
+              <span>Khách</span>
+              <span>Phòng</span>
+              <span>Đánh giá</span>
+              <span>Nội dung</span>
+              <span>Trạng thái</span>
+              <span>Hành động</span>
+            </div>
+            <div id="reviewsList">Đang tải...</div>
+          </div>
+        </div>
+
+        <!-- ================= MENU TAB ================= -->
+        <div class="admin-tab-content" id="tab-menu">
 
     <!-- Stats -->
     <div class="stats-bar" id="statsBar"></div>
@@ -82,7 +231,10 @@
       </div>
       <div id="itemsList"></div>
     </div>
-  </div>
+        </div> <!-- end #tab-menu -->
+      </div> <!-- end .admin-main -->
+    </div> <!-- end .admin-layout -->
+  </div> <!-- end #adminApp -->
 
   <!-- Edit modal -->
   <div class="modal-overlay" id="editModal">

@@ -10,4 +10,14 @@ function requireAuth(req, res, next) {
     res.status(401).json({ error: 'Token không hợp lệ hoặc đã hết hạn' });
   }
 }
-module.exports = { requireAuth };
+
+function requireAdmin(req, res, next) {
+  requireAuth(req, res, () => {
+    if (req.admin.role !== 'admin' && req.admin.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Không có quyền truy cập chức năng này' });
+    }
+    next();
+  });
+}
+
+module.exports = { requireAuth, requireAdmin };

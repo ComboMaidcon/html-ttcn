@@ -45,7 +45,7 @@ router.get('/admin', requireAuth, async (req, res) => {
 
   let query = supabase
     .from('bookings')
-    .select('*, customers(name, phone), rooms(name, floor, type, emoji)', { count: 'exact' })
+    .select('*, customers(name, phone), rooms(name, floor, type)', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(from, to);
 
@@ -60,7 +60,7 @@ router.get('/admin', requireAuth, async (req, res) => {
 // ── POST /api/bookings — public ──
 router.post('/',
   body('roomId').notEmpty().withMessage('Thiếu roomId'),
-  body('date').isDate().withMessage('Ngày không hợp lệ'),
+  body('date').isISO8601().withMessage('Ngày không hợp lệ'),
   body('startHour').isFloat({ min: 9, max: 25.5 }).withMessage('Giờ bắt đầu không hợp lệ'),
   body('endHour').isFloat({ min: 9.5, max: 26 }).withMessage('Giờ kết thúc không hợp lệ'),
   body('name').trim().notEmpty().withMessage('Thiếu tên'),
@@ -142,12 +142,78 @@ router.patch('/:id', requireAuth,
   body('status').isIn(['pending','confirmed','cancelled','completed']).withMessage('Status không hợp lệ'),
   validate,
   async (req, res) => {
+    const { status } = req.body;
     const { data, error } = await supabase
       .from('bookings')
-      .update({ status: req.body.status })
+      .update({ status })
       .eq('id', req.params.id)
-      .select().single();
+      .select('*, rooms(name, type)').single();
     if (error) return res.status(500).json({ error: error.message });
+
+    // Tự động sinh Hoá đơn (Invoice) nếu hoàn thành
+    if (status === 'completed') {
+      // Check if invoice already exists
+      const { data: existingInv } = await supabase.from('invoices').select('id').eq('booking_id', data.id).single();
+      if (!existingInv) {
+        // Tính tạm số giờ:
+        const t2f = t => parseInt(t.split(':')[0]) + parseInt(t.split(':')[1])/60;
+        let hours = t2f(data.end_time) - t2f(data.start_time);
+        if (data.is_overnight || hours <= 0) hours += 24;
+        
+        let food_amount = 0;
+        let foodItems = [];
+
+        // Lấy tất cả orders đã 'closed' của booking này
+        const { data: orders } = await supabase.from('orders').select('id, order_items(description:menu_item_id, quantity, unit_price, menu_items(name))').eq('booking_id', data.id).eq('status', 'closed');
+        
+        if (orders) {
+          orders.forEach(o => {
+            if (o.order_items) {
+              o.order_items.forEach(oi => {
+                food_amount += oi.unit_price * oi.quantity;
+                foodItems.push({
+                  item_type: 'food',
+                  description: oi.menu_items?.name || 'Thức ăn',
+                  quantity: oi.quantity,
+                  unit_price: oi.unit_price
+                });
+              });
+            }
+          });
+        }
+
+        const room_amount = Math.round(hours * 80000); // Tạm tính 80k/h
+        const total_amount = room_amount + food_amount;
+        
+        const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
+          booking_id: data.id,
+          room_amount: room_amount,
+          food_amount: food_amount,
+          payment_status: 'paid',
+          payment_method: 'cash'
+        }]).select().single();
+
+        if (inv && !invErr) {
+          // Add invoice item for room
+          let invItemsToInsert = [{
+            invoice_id: inv.id,
+            item_type: 'room',
+            description: `${data.rooms?.name || data.room_id} (${data.start_time.slice(0,5)} - ${data.end_time.slice(0,5)})`,
+            quantity: hours,
+            unit_price: 80000
+          }];
+          
+          // Add invoice items for food
+          foodItems.forEach(fi => {
+            fi.invoice_id = inv.id;
+            invItemsToInsert.push(fi);
+          });
+
+          await supabase.from('invoice_items').insert(invItemsToInsert);
+        }
+      }
+    }
+
     res.json({ booking: data });
   }
 );

@@ -43,19 +43,31 @@ if (preStart && params.get('end')) {
 const roomSel   = document.getElementById('f-room');
 const quickList = document.getElementById('roomQuickList');
 
-ROOMS.forEach(r => {
-  roomSel.insertAdjacentHTML('beforeend',
-    `<option value="${r.id}">${r.name} (${r.badge}) – từ ${r.price}K/h</option>`);
-  quickList.insertAdjacentHTML('beforeend', `
-    <div class="selected-room ${r.id === preRoom ? 'active' : ''}"
-         data-rid="${r.id}" onclick="selectRoom('${r.id}')">
-      <span class="sr-emoji">${r.emoji}</span>
-      <div>
-        <div class="sr-name">${r.name}</div>
-        <div class="sr-price">Từ ${r.price}K/giờ</div>
-        <div class="sr-cap">👥 ${r.capacity}</div>
-      </div>
-    </div>`);
+// Group rooms by floor
+const floors = [6, 5, 4];
+floors.forEach(floor => {
+  const floorRooms = ROOMS.filter(r => r.floor === floor);
+  if (!floorRooms.length) return;
+  
+  const optGroup = document.createElement('optgroup');
+  optGroup.label = FLOOR_META[floor]?.label || `Tầng ${floor}`;
+  
+  floorRooms.forEach(r => {
+    optGroup.insertAdjacentHTML('beforeend',
+      `<option value="${r.id}">${r.name} (${r.badge}) – từ ${r.price}K/h</option>`);
+      
+    quickList.insertAdjacentHTML('beforeend', `
+      <div class="selected-room ${r.id === preRoom ? 'active' : ''}"
+           data-rid="${r.id}" onclick="selectRoom('${r.id}')">
+        <span class="sr-emoji">${r.emoji}</span>
+        <div>
+          <div class="sr-name">T${r.floor} - ${r.name}</div>
+          <div class="sr-price">Từ ${r.price}K/giờ</div>
+          <div class="sr-cap">👥 ${r.capacity}</div>
+        </div>
+      </div>`);
+  });
+  roomSel.appendChild(optGroup);
 });
 
 if (preRoom) roomSel.value = preRoom;

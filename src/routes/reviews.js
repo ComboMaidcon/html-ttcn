@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { body } = require('express-validator');
 const { validate }    = require('../middleware/validate');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 const supabase        = require('../lib/supabase');
 
 // GET /api/reviews — public (chỉ approved)
@@ -67,8 +67,32 @@ router.post('/',
   }
 );
 
+// GET /api/reviews/admin — admin
+router.get('/admin', requireAdmin, async (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  const from = (parseInt(page) - 1) * parseInt(limit);
+  const to   = from + parseInt(limit) - 1;
+
+  const { data, count, error } = await supabase
+    .from('reviews')
+    .select('*, customers(name), rooms(name)', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const mappedReviews = data.map(r => ({
+    ...r,
+    name: r.customers?.name || 'Khách',
+    initial: (r.customers?.name || 'K')[0].toUpperCase(),
+    room_name: r.rooms?.name || null
+  }));
+
+  res.json({ reviews: mappedReviews, total: count, page: parseInt(page), limit: parseInt(limit) });
+});
+
 // PATCH /api/reviews/:id — admin: approve/reject
-router.patch('/:id', requireAuth,
+router.patch('/:id', requireAdmin,
   body('isApproved').isBoolean(),
   validate,
   async (req, res) => {
@@ -81,7 +105,7 @@ router.patch('/:id', requireAuth,
 );
 
 // DELETE /api/reviews/:id — admin
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   const { error } = await supabase.from('reviews').delete().eq('id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Đã xóa' });

@@ -59,6 +59,17 @@ async function apiUpdateBookingStatus(id, status) {
 }
 
 /* ════════════════════════════════
+   ROOMS
+   ════════════════════════════════ */
+async function apiGetRoomsAdmin() {
+  return apiFetch('/api/rooms/admin');
+}
+
+async function apiUpdateRoom(id, changes) {
+  return apiFetch(`/api/rooms/${id}`, { method: 'PATCH', body: changes });
+}
+
+/* ════════════════════════════════
    MENU
    ════════════════════════════════ */
 async function apiGetMenu(tab = null) {
@@ -118,6 +129,11 @@ async function apiGetReviews({ page = 1, visitType, minRating } = {}) {
   return apiFetch(`/api/reviews?${qs}`);
 }
 
+async function apiGetReviewsAdmin({ page = 1 } = {}) {
+  const qs = new URLSearchParams({ page });
+  return apiFetch(`/api/reviews/admin?${qs}`);
+}
+
 async function apiCreateReview({ name, rating, content, roomName, visitType, source }) {
   return apiFetch('/api/reviews', {
     method: 'POST',
@@ -142,13 +158,47 @@ async function apiLogin(email, password) {
     body: { email, password },
   });
   sessionStorage.setItem('nox_admin_token', res.token);
+  sessionStorage.setItem('nox_admin_role', res.admin.role);
+  sessionStorage.setItem('nox_admin_name', res.admin.name || email);
   return res;
 }
 
 function apiLogout() {
   sessionStorage.removeItem('nox_admin_token');
+  sessionStorage.removeItem('nox_admin_role');
+  sessionStorage.removeItem('nox_admin_name');
 }
 
 function apiIsLoggedIn() {
   return !!sessionStorage.getItem('nox_admin_token');
+}
+
+/* ════════════════════════════════
+   REPORTS
+   ════════════════════════════════ */
+async function apiGetReportsDashboard(startDate, endDate) {
+  const qs = new URLSearchParams();
+  if (startDate) qs.set('startDate', startDate);
+  if (endDate) qs.set('endDate', endDate);
+  return apiFetch(`/api/reports/dashboard?${qs}`);
+}
+
+/* ════════════════════════════════
+   INVOICES
+   ════════════════════════════════ */
+async function apiGetInvoicesAdmin(sortBy = 'newest') {
+  return apiFetch(`/api/invoices/admin?sortBy=${sortBy}`);
+}
+
+/* ════════════════════════════════
+   ORDERS (Bếp)
+   ════════════════════════════════ */
+async function apiGetOrdersAdmin() {
+  return apiFetch('/api/orders/admin');
+}
+
+async function apiApproveOrder(id) {
+  return apiFetch(`/api/orders/admin/${id}`, {
+    method: 'PATCH'
+  });
 }

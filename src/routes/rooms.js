@@ -1,5 +1,5 @@
 const router      = require('express').Router();
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 const supabase    = require('../lib/supabase');
 
 // GET /api/rooms — public
@@ -14,6 +14,14 @@ router.get('/', async (req, res) => {
   res.json({ rooms: data });
 });
 
+// GET /api/rooms/admin — admin
+router.get('/admin', requireAdmin, async (req, res) => {
+  const { data, error } = await supabase
+    .from('rooms').select('*').order('floor', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ rooms: data });
+});
+
 // GET /api/rooms/:id — public
 router.get('/:id', async (req, res) => {
   const { data, error } = await supabase
@@ -23,7 +31,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // PATCH /api/rooms/:id — admin only
-router.patch('/:id', requireAuth, async (req, res) => {
+router.patch('/:id', requireAdmin, async (req, res) => {
   const allowed = ['name','is_active'];
   const updates = Object.fromEntries(
     Object.entries(req.body).filter(([k]) => allowed.includes(k))

@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { body } = require('express-validator');
 const { validate }    = require('../middleware/validate');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 const supabase        = require('../lib/supabase');
 
 // GET /api/menu — public
@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/menu — admin
-router.post('/', requireAuth,
+router.post('/', requireAdmin,
   body('tab').isIn(['drink','food']),
   body('category').notEmpty(),
   body('name').trim().notEmpty(),
@@ -35,7 +35,7 @@ router.post('/', requireAuth,
 );
 
 // PATCH /api/menu/:id — admin
-router.patch('/:id', requireAuth, async (req, res) => {
+router.patch('/:id', requireAdmin, async (req, res) => {
   const allowed = ['name','price','variants','is_available','sort_order','category'];
   const updates = Object.fromEntries(
     Object.entries(req.body).filter(([k]) => allowed.includes(k))
@@ -47,7 +47,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
 });
 
 // DELETE /api/menu/:id — admin
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   const { error } = await supabase.from('menu_items').delete().eq('id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Đã xóa' });

@@ -22,7 +22,7 @@ app.use(cors({
 /* ── Rate limiting ── */
 app.use('/api/bookings', rateLimit({
   windowMs: 15 * 60 * 1000, // 15 phút
-  max: 20,
+  max: 200,
   message: { error: 'Quá nhiều yêu cầu, thử lại sau 15 phút.' },
 }));
 app.use('/api/auth', rateLimit({
@@ -41,6 +41,9 @@ app.use('/api/rooms', require('./routes/rooms'));
 app.use('/api/bookings', require('./routes/bookings'));
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/reports', require('./routes/reports'));
+app.use('/api/invoices', require('./routes/invoices'));
+app.use('/api/orders', require('./routes/orders'));
 
 /* ── Health check ── */
 app.get('/health', (req, res) =>
