@@ -24,10 +24,9 @@ router.post('/', requireAuth,
   body('price').isInt({ min: 1 }),
   validate,
   async (req, res) => {
-    const { tab, category, name, price, description, variants } = req.body;
+    const { tab, category, name, price, variants } = req.body;
     const { data, error } = await supabase.from('menu_items').insert([{
       tab, category, name: name.trim(), price: parseInt(price),
-      description: description?.trim() || null,
       variants:    variants?.trim()    || null,
     }]).select().single();
     if (error) return res.status(500).json({ error: error.message });
@@ -37,7 +36,7 @@ router.post('/', requireAuth,
 
 // PATCH /api/menu/:id — admin
 router.patch('/:id', requireAuth, async (req, res) => {
-  const allowed = ['name','price','description','variants','is_available','sort_order','category'];
+  const allowed = ['name','price','variants','is_available','sort_order','category'];
   const updates = Object.fromEntries(
     Object.entries(req.body).filter(([k]) => allowed.includes(k))
   );

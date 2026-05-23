@@ -24,7 +24,7 @@ router.get('/:id', async (req, res) => {
 
 // PATCH /api/rooms/:id — admin only
 router.patch('/:id', requireAuth, async (req, res) => {
-  const allowed = ['name','description','price','is_active','features'];
+  const allowed = ['name','is_active'];
   const updates = Object.fromEntries(
     Object.entries(req.body).filter(([k]) => allowed.includes(k))
   );

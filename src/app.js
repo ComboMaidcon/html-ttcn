@@ -1,9 +1,9 @@
 require('dotenv').config();
-const express    = require('express');
-const cors       = require('cors');
-const helmet     = require('helmet');
-const morgan     = require('morgan');
-const rateLimit  = require('express-rate-limit');
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 
@@ -11,12 +11,12 @@ const app = express();
 app.use(helmet());
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL || 'http://127.0.0.1:5500',
-    'http://localhost:5500',
+    process.env.FRONTEND_URL || 'http://127.0.0.1:5000',
+    'http://localhost:5000',
     'http://localhost:3000',
   ],
-  methods: ['GET','POST','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 /* ── Rate limiting ── */
@@ -36,11 +36,11 @@ app.use(express.json({ limit: '10kb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 /* ── Routes ── */
-app.use('/api/auth',     require('./routes/auth'));
-app.use('/api/rooms',    require('./routes/rooms'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/rooms', require('./routes/rooms'));
 app.use('/api/bookings', require('./routes/bookings'));
-app.use('/api/menu',     require('./routes/menu'));
-app.use('/api/reviews',  require('./routes/reviews'));
+app.use('/api/menu', require('./routes/menu'));
+app.use('/api/reviews', require('./routes/reviews'));
 
 /* ── Health check ── */
 app.get('/health', (req, res) =>

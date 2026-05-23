@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "seed": "node database/seed.js"
+    "seed": "node database/seed.js",
+    "ui": "http-server . -p 5000 -c-1"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
@@ -21,6 +22,7 @@
     "morgan": "^1.10.0"
   },
   "devDependencies": {
+    "http-server": "^14.1.1",
     "nodemon": "^3.0.2"
   }
 }

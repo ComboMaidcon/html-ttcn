@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
   const from = (parseInt(page) - 1) * parseInt(limit);
   const to   = from + parseInt(limit) - 1;
 
-  let query = supabase.from('reviews').select('*', { count: 'exact' })
+  let query = supabase.from('reviews').select('*, customers(name), rooms(name)', { count: 'exact' })
     .eq('is_approved', true).order('created_at', { ascending: false }).range(from, to);
 
   if (visitType)  query = query.eq('visit_type', visitType);
@@ -19,13 +19,20 @@ router.get('/', async (req, res) => {
   const { data, count, error } = await query;
   if (error) return res.status(500).json({ error: error.message });
 
+  const mappedReviews = data.map(r => ({
+    ...r,
+    name: r.customers?.name || 'Khách',
+    initial: (r.customers?.name || 'K')[0].toUpperCase(),
+    room_name: r.rooms?.name || null
+  }));
+
   // Tính stats
   const { data: all } = await supabase
     .from('reviews').select('rating').eq('is_approved', true);
   const avg  = all?.length ? (all.reduce((s,r) => s+r.rating, 0) / all.length).toFixed(1) : 0;
   const dist = [1,2,3,4,5].map(n => ({ star: n, count: all?.filter(r => r.rating===n).length || 0 }));
 
-  res.json({ reviews: data, total: count, page: parseInt(page), stats: { avg, dist, total: all?.length || 0 } });
+  res.json({ reviews: mappedReviews, total: count, page: parseInt(page), stats: { avg, dist, total: all?.length || 0 } });
 });
 
 // POST /api/reviews — public
@@ -36,11 +43,21 @@ router.post('/',
   validate,
   async (req, res) => {
     const { name, rating, roomName, visitType, source, content } = req.body;
+    
+    // Tạo khách hàng ẩn danh (có phone giả) để lưu tên
+    const dummyPhone = '00' + Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
+    const { data: customer, error: custErr } = await supabase.from('customers').insert([{
+      name: name.trim(),
+      phone: dummyPhone,
+      source: source || 'website'
+    }]).select().single();
+
+    if (custErr) return res.status(500).json({ error: custErr.message });
+
     const { data, error } = await supabase.from('reviews').insert([{
-      name:       name.trim(),
-      initial:    name.trim()[0].toUpperCase(),
+      customer_id: customer.id,
+      room_id:    roomName  || null,
       rating:     parseInt(rating),
-      room_name:  roomName  || null,
       visit_type: visitType || null,
       source:     source    || null,
       content:    content.trim(),

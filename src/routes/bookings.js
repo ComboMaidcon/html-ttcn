@@ -4,6 +4,13 @@ const { validate }    = require('../middleware/validate');
 const { requireAuth } = require('../middleware/auth');
 const supabase        = require('../lib/supabase');
 
+const timeToFloat = (t) => { const [h,m] = t.split(':'); return parseInt(h) + parseInt(m)/60; };
+const floatToTime = (h) => {
+  const hr = Math.floor(h) % 24;
+  const min = Math.round((h - Math.floor(h)) * 60);
+  return `${hr.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:00`;
+};
+
 // ── GET /api/bookings?date=&roomId= — public (chỉ trả giờ, không trả tên/SĐT)
 router.get('/', async (req, res) => {
   const { date, roomId, roomIds } = req.query;
@@ -11,8 +18,8 @@ router.get('/', async (req, res) => {
 
   let query = supabase
     .from('bookings')
-    .select('room_id, date, start_hour, end_hour, status')
-    .eq('date', date)
+    .select('room_id, booking_date, start_time, end_time, is_overnight, status')
+    .eq('booking_date', date)
     .not('status', 'eq', 'cancelled');
 
   if (roomId)  query = query.eq('room_id', roomId);
@@ -20,7 +27,14 @@ router.get('/', async (req, res) => {
 
   const { data, error } = await query;
   if (error) return res.status(500).json({ error: error.message });
-  res.json({ bookings: data });
+  
+  const mapped = data.map(b => ({
+    ...b,
+    date: b.booking_date,
+    start_hour: timeToFloat(b.start_time),
+    end_hour: timeToFloat(b.end_time) + (b.is_overnight ? 24 : 0),
+  }));
+  res.json({ bookings: mapped });
 });
 
 // ── GET /api/bookings/admin — admin: full data ──
@@ -31,11 +45,11 @@ router.get('/admin', requireAuth, async (req, res) => {
 
   let query = supabase
     .from('bookings')
-    .select('*, rooms(name, floor, type, emoji)', { count: 'exact' })
+    .select('*, customers(name, phone), rooms(name, floor, type, emoji)', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(from, to);
 
-  if (date)   query = query.eq('date', date);
+  if (date)   query = query.eq('booking_date', date);
   if (status) query = query.eq('status', status);
 
   const { data, count, error } = await query;
@@ -81,26 +95,41 @@ router.post('/',
     // Check trùng lịch
     const { data: conflicts } = await supabase
       .from('bookings')
-      .select('id')
+      .select('id, start_time, end_time, is_overnight')
       .eq('room_id', roomId)
-      .eq('date', date)
-      .not('status', 'eq', 'cancelled')
-      .lt('start_hour', endHour)
-      .gt('end_hour', startHour);
+      .eq('booking_date', date)
+      .not('status', 'eq', 'cancelled');
 
-    if (conflicts?.length > 0)
+    const hasConflict = conflicts?.some(b => {
+      const bStart = timeToFloat(b.start_time);
+      const bEnd = timeToFloat(b.end_time) + (b.is_overnight ? 24 : 0);
+      return bStart < endHour && bEnd > startHour;
+    });
+
+    if (hasConflict)
       return res.status(409).json({ error: 'Phòng đã có người đặt trong khung giờ này' });
 
+    let customerId;
+    const { data: existingCustomer } = await supabase.from('customers').select('id').eq('phone', phone).single();
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+    } else {
+      const { data: newCustomer, error: custErr } = await supabase.from('customers').insert([{ name: name.trim(), phone: phone.trim(), source: 'website' }]).select().single();
+      if (custErr) return res.status(500).json({ error: custErr.message });
+      customerId = newCustomer.id;
+    }
+
     const { data, error } = await supabase.from('bookings').insert([{
-      room_id:    roomId,
-      date,
-      start_hour: startHour,
-      end_hour:   endHour,
-      name:       name.trim(),
-      phone:      phone.trim(),
-      people:     parseInt(people),
-      note:       note?.trim() || null,
-      status:     'pending',
+      room_id:      roomId,
+      booking_date: date,
+      start_time:   floatToTime(startHour),
+      end_time:     floatToTime(endHour),
+      is_overnight: endHour >= 24,
+      customer_id:  customerId,
+      people:       parseInt(people),
+      note:         note?.trim() || null,
+      status:       'pending',
+      channel:      'website',
     }]).select().single();
 
     if (error) return res.status(500).json({ error: error.message });
