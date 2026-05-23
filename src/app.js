@@ -11,8 +11,8 @@ const app = express();
 app.use(helmet());
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL || 'http://127.0.0.1:5000',
-    'http://localhost:5000',
+    process.env.FRONTEND_URL || 'http://127.0.0.1:5500',
+    'http://localhost:5500',
     'http://localhost:3000',
   ],
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
