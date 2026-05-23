@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+
 function requireAuth(req, res, next) {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer '))
@@ -13,11 +14,21 @@ function requireAuth(req, res, next) {
 
 function requireAdmin(req, res, next) {
   requireAuth(req, res, () => {
-    if (req.admin.role !== 'admin' && req.admin.role !== 'superadmin') {
+    if (req.admin.role !== 'admin' && req.admin.role !== 'superadmin')
       return res.status(403).json({ error: 'Không có quyền truy cập chức năng này' });
-    }
     next();
   });
 }
 
-module.exports = { requireAuth, requireAdmin };
+// Giữ từ files.zip — linh hoạt hơn khi cần phân quyền cụ thể
+function requireRole(...roles) {
+  return (req, res, next) => {
+    requireAuth(req, res, () => {
+      if (!roles.includes(req.admin?.role))
+        return res.status(403).json({ error: 'Không có quyền thực hiện thao tác này' });
+      next();
+    });
+  };
+}
+
+module.exports = { requireAuth, requireAdmin, requireRole };

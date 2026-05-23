@@ -1,60 +1,79 @@
-const router   = require('express').Router();
+const router  = require('express').Router();
 const { body, query: qv } = require('express-validator');
 const { validate }    = require('../middleware/validate');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 const supabase        = require('../lib/supabase');
 
+// Helper chuyển đổi giờ
 const timeToFloat = (t) => { const [h,m] = t.split(':'); return parseInt(h) + parseInt(m)/60; };
 const floatToTime = (h) => {
-  const hr = Math.floor(h) % 24;
+  const hr  = Math.floor(h) % 24;
   const min = Math.round((h - Math.floor(h)) * 60);
-  return `${hr.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:00`;
+  return `${hr.toString().padStart(2,'0')}:${min.toString().padStart(2,'0')}:00`;
 };
 
-// ── GET /api/bookings?date=&roomId= — public (chỉ trả giờ, không trả tên/SĐT)
+// ── GET /api/bookings?date=&roomId= — public ──
 router.get('/', async (req, res) => {
   const { date, roomId, roomIds } = req.query;
   if (!date) return res.status(400).json({ error: 'Thiếu tham số date' });
-
   let query = supabase
     .from('bookings')
     .select('room_id, booking_date, start_time, end_time, is_overnight, status')
     .eq('booking_date', date)
     .not('status', 'eq', 'cancelled');
-
   if (roomId)  query = query.eq('room_id', roomId);
   if (roomIds) query = query.in('room_id', roomIds.split(','));
-
   const { data, error } = await query;
   if (error) return res.status(500).json({ error: error.message });
-  
+  // Map về float hours để frontend dùng được (khớp với js/api.js)
   const mapped = data.map(b => ({
     ...b,
-    date: b.booking_date,
+    date:       b.booking_date,
     start_hour: timeToFloat(b.start_time),
-    end_hour: timeToFloat(b.end_time) + (b.is_overnight ? 24 : 0),
+    end_hour:   timeToFloat(b.end_time) + (b.is_overnight ? 24 : 0),
   }));
   res.json({ bookings: mapped });
 });
 
-// ── GET /api/bookings/admin — admin: full data ──
-router.get('/admin', requireAuth, async (req, res) => {
-  const { date, status, page = 1, limit = 20 } = req.query;
+// ── GET /api/bookings/admin — admin: full data có phân trang ──
+router.get('/admin', requireAdmin, async (req, res) => {
+  const { date, status, customerId, page = 1, limit = 20 } = req.query;
   const from = (parseInt(page) - 1) * parseInt(limit);
   const to   = from + parseInt(limit) - 1;
-
   let query = supabase
     .from('bookings')
-    .select('*, customers(name, phone), rooms(name, floor, type)', { count: 'exact' })
-    .order('created_at', { ascending: false })
+    .select('*, customers(id, name, phone, source), rooms(id, name, floor, type)', { count: 'exact' })
+    .order('booking_date', { ascending: false })
+    .order('start_time',   { ascending: false })
     .range(from, to);
-
-  if (date)   query = query.eq('booking_date', date);
-  if (status) query = query.eq('status', status);
-
+  if (date)       query = query.eq('booking_date', date);
+  if (status)     query = query.eq('status', status);
+  if (customerId) query = query.eq('customer_id', customerId);
   const { data, count, error } = await query;
   if (error) return res.status(500).json({ error: error.message });
   res.json({ bookings: data, total: count, page: parseInt(page), limit: parseInt(limit) });
+});
+
+// ── GET /api/bookings/:id — admin: chi tiết kèm orders + invoice ──
+router.get('/:id', requireAdmin, async (req, res) => {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(`
+      *,
+      customers(id, name, phone, source, note),
+      rooms(id, name, floor, type, capacity_min, capacity_max),
+      orders(id, status, note, created_at,
+        order_items(id, quantity, unit_price, variant, note, amount,
+          menu_items(id, name, tab, category)
+        )
+      ),
+      invoices(id, room_amount, food_amount, surcharge, discount,
+               total_amount, payment_method, payment_status, deposit_amount)
+    `)
+    .eq('id', req.params.id)
+    .single();
+  if (error) return res.status(404).json({ error: 'Không tìm thấy booking' });
+  res.json({ booking: data });
 });
 
 // ── POST /api/bookings — public ──
@@ -66,33 +85,23 @@ router.post('/',
   body('name').trim().notEmpty().withMessage('Thiếu tên'),
   body('phone').matches(/^\d{10}$/).withMessage('Số điện thoại phải đúng 10 chữ số'),
   body('people').isInt({ min: 1, max: 10 }).withMessage('Số người từ 1–10'),
+  body('channel').optional().isIn(['website','call','facebook','zalo','walk-in']),
   validate,
   async (req, res) => {
-    const { roomId, date, startHour, endHour, name, phone, people, note } = req.body;
+    const { roomId, date, startHour, endHour, name, phone, people, note, channel } = req.body;
 
     if (endHour <= startHour)
       return res.status(400).json({ error: 'Giờ kết thúc phải sau giờ bắt đầu' });
 
-    // Check phòng tồn tại
-    const { data: room } = await supabase.from('rooms').select('id, type, name').eq('id', roomId).single();
+    // Kiểm tra phòng tồn tại + sức chứa từ DB
+    const { data: room } = await supabase.from('rooms')
+      .select('id, type, name, capacity_max').eq('id', roomId).single();
     if (!room) return res.status(404).json({ error: 'Phòng không tồn tại' });
 
-    // Check số người không vượt quá sức chứa phòng
-    const maxPeople = {
-      'small':          2,
-      'medium-classic': 4,
-      'medium-deluxe':  4,
-      'cine':           2,
-      'suite':          4,
-    }[room.type] || 10;
+    if (room.capacity_max && people > room.capacity_max)
+      return res.status(400).json({ error: `Phòng chỉ chứa tối đa ${room.capacity_max} người` });
 
-    if (people > maxPeople) {
-      return res.status(400).json({
-      error: `Phòng ${room.type} chỉ chứa tối đa ${maxPeople} người`
-      });
-    }
-
-    // Check trùng lịch
+    // Kiểm tra trùng lịch
     const { data: conflicts } = await supabase
       .from('bookings')
       .select('id, start_time, end_time, is_overnight')
@@ -102,19 +111,23 @@ router.post('/',
 
     const hasConflict = conflicts?.some(b => {
       const bStart = timeToFloat(b.start_time);
-      const bEnd = timeToFloat(b.end_time) + (b.is_overnight ? 24 : 0);
+      const bEnd   = timeToFloat(b.end_time) + (b.is_overnight ? 24 : 0);
       return bStart < endHour && bEnd > startHour;
     });
-
     if (hasConflict)
       return res.status(409).json({ error: 'Phòng đã có người đặt trong khung giờ này' });
 
+    // Tìm hoặc tạo customer
     let customerId;
-    const { data: existingCustomer } = await supabase.from('customers').select('id').eq('phone', phone).single();
+    const { data: existingCustomer } = await supabase
+      .from('customers').select('id').eq('phone', phone.trim()).single();
     if (existingCustomer) {
       customerId = existingCustomer.id;
     } else {
-      const { data: newCustomer, error: custErr } = await supabase.from('customers').insert([{ name: name.trim(), phone: phone.trim(), source: 'website' }]).select().single();
+      const { data: newCustomer, error: custErr } = await supabase
+        .from('customers')
+        .insert([{ name: name.trim(), phone: phone.trim(), source: channel || 'website' }])
+        .select().single();
       if (custErr) return res.status(500).json({ error: custErr.message });
       customerId = newCustomer.id;
     }
@@ -129,97 +142,84 @@ router.post('/',
       people:       parseInt(people),
       note:         note?.trim() || null,
       status:       'pending',
-      channel:      'website',
-    }]).select().single();
+      channel:      channel || 'website',
+    }]).select('*, customers(name, phone), rooms(name, floor, type)').single();
 
     if (error) return res.status(500).json({ error: error.message });
-    res.status(201).json({ booking: data, message: 'Đặt phòng thành công! Chúng tôi sẽ xác nhận trong 15 phút.' });
+    res.status(201).json({
+      booking: data,
+      message: 'Đặt phòng thành công! Chúng tôi sẽ xác nhận trong 15 phút.',
+    });
   }
 );
 
-// ── PATCH /api/bookings/:id — admin: đổi status ──
-router.patch('/:id', requireAuth,
+// ── PATCH /api/bookings/:id/status — admin: đổi trạng thái ──
+router.patch('/:id/status', requireAdmin,
   body('status').isIn(['pending','confirmed','cancelled','completed']).withMessage('Status không hợp lệ'),
   validate,
   async (req, res) => {
     const { status } = req.body;
     const { data, error } = await supabase
-      .from('bookings')
-      .update({ status })
+      .from('bookings').update({ status })
       .eq('id', req.params.id)
-      .select('*, rooms(name, type)').single();
+      .select('*, rooms(name, type, capacity_min, capacity_max, surcharge_per_person, surcharge_from_person)')
+      .single();
     if (error) return res.status(500).json({ error: error.message });
-
-    // Tự động sinh Hoá đơn (Invoice) nếu hoàn thành
-    if (status === 'completed') {
-      // Check if invoice already exists
-      const { data: existingInv } = await supabase.from('invoices').select('id').eq('booking_id', data.id).single();
-      if (!existingInv) {
-        // Tính tạm số giờ:
-        const t2f = t => parseInt(t.split(':')[0]) + parseInt(t.split(':')[1])/60;
-        let hours = t2f(data.end_time) - t2f(data.start_time);
-        if (data.is_overnight || hours <= 0) hours += 24;
-        
-        let food_amount = 0;
-        let foodItems = [];
-
-        // Lấy tất cả orders đã 'closed' của booking này
-        const { data: orders } = await supabase.from('orders').select('id, order_items(description:menu_item_id, quantity, unit_price, menu_items(name))').eq('booking_id', data.id).eq('status', 'closed');
-        
-        if (orders) {
-          orders.forEach(o => {
-            if (o.order_items) {
-              o.order_items.forEach(oi => {
-                food_amount += oi.unit_price * oi.quantity;
-                foodItems.push({
-                  item_type: 'food',
-                  description: oi.menu_items?.name || 'Thức ăn',
-                  quantity: oi.quantity,
-                  unit_price: oi.unit_price
-                });
-              });
-            }
-          });
-        }
-
-        const room_amount = Math.round(hours * 80000); // Tạm tính 80k/h
-        const total_amount = room_amount + food_amount;
-        
-        const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
-          booking_id: data.id,
-          room_amount: room_amount,
-          food_amount: food_amount,
-          payment_status: 'paid',
-          payment_method: 'cash'
-        }]).select().single();
-
-        if (inv && !invErr) {
-          // Add invoice item for room
-          let invItemsToInsert = [{
-            invoice_id: inv.id,
-            item_type: 'room',
-            description: `${data.rooms?.name || data.room_id} (${data.start_time.slice(0,5)} - ${data.end_time.slice(0,5)})`,
-            quantity: hours,
-            unit_price: 80000
-          }];
-          
-          // Add invoice items for food
-          foodItems.forEach(fi => {
-            fi.invoice_id = inv.id;
-            invItemsToInsert.push(fi);
-          });
-
-          await supabase.from('invoice_items').insert(invItemsToInsert);
-        }
-      }
-    }
-
     res.json({ booking: data });
   }
 );
 
-// ── DELETE /api/bookings/:id — admin only ──
-router.delete('/:id', requireAuth, async (req, res) => {
+// ── PATCH /api/bookings/:id — admin: sửa giờ / số người / ghi chú ──
+router.patch('/:id', requireAdmin,
+  body('startHour').optional().isFloat({ min: 9, max: 25.5 }),
+  body('endHour').optional().isFloat({ min: 9.5, max: 26 }),
+  body('people').optional().isInt({ min: 1, max: 10 }),
+  validate,
+  async (req, res) => {
+    const updates = {};
+    if (req.body.startHour  !== undefined) updates.start_time   = floatToTime(req.body.startHour);
+    if (req.body.endHour    !== undefined) updates.end_time     = floatToTime(req.body.endHour);
+    if (req.body.people     !== undefined) updates.people       = parseInt(req.body.people);
+    if (req.body.note       !== undefined) updates.note         = req.body.note;
+    if (req.body.bookingDate !== undefined) updates.booking_date = req.body.bookingDate;
+
+    if (updates.start_time && updates.end_time)
+      updates.is_overnight = req.body.endHour >= 24;
+
+    if (Object.keys(updates).length === 0)
+      return res.status(400).json({ error: 'Không có trường hợp lệ để cập nhật' });
+
+    // Kiểm tra trùng lịch nếu đổi giờ
+    if (updates.start_time && updates.end_time) {
+      const { data: current } = await supabase
+        .from('bookings').select('room_id, booking_date').eq('id', req.params.id).single();
+      const { data: conflicts } = await supabase
+        .from('bookings')
+        .select('id, start_time, end_time, is_overnight')
+        .eq('room_id', current.room_id)
+        .eq('booking_date', updates.booking_date || current.booking_date)
+        .not('status', 'eq', 'cancelled')
+        .neq('id', req.params.id);
+      const hasConflict = conflicts?.some(b => {
+        const bStart = timeToFloat(b.start_time);
+        const bEnd   = timeToFloat(b.end_time) + (b.is_overnight ? 24 : 0);
+        return bStart < req.body.endHour && bEnd > req.body.startHour;
+      });
+      if (hasConflict)
+        return res.status(409).json({ error: 'Khung giờ mới bị trùng với booking khác' });
+    }
+
+    const { data, error } = await supabase
+      .from('bookings').update(updates).eq('id', req.params.id).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ booking: data });
+  }
+);
+
+// ── DELETE /api/bookings/:id — chỉ superadmin ──
+router.delete('/:id', requireAdmin, async (req, res) => {
+  if (req.admin.role !== 'superadmin')
+    return res.status(403).json({ error: 'Chỉ superadmin mới có thể xoá booking' });
   const { error } = await supabase.from('bookings').delete().eq('id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Đã xóa' });
