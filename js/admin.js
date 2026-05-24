@@ -54,7 +54,7 @@ function syncCatSelect(selId, tab) {
 /* ── Stats ── */
 async function renderStats() {
   let items = [];
-  try { items = await apiGetMenu(); } catch { items = getMenuItems(); }
+  try { items = await apiGetMenuAdmin(); } catch { items = getMenuItems(); }
 
   const total  = items.length;
   const avail  = items.filter(i => i.available !== false).length;
@@ -71,7 +71,7 @@ async function renderStats() {
 /* ── Cat filter chips ── */
 async function renderCatFilter() {
   let items = [];
-  try { items = await apiGetMenu(); } catch { items = getMenuItems(); }
+  try { items = await apiGetMenuAdmin(); } catch { items = getMenuItems(); }
 
   const usedCats = [...new Set(items.map(i => i.cat))];
   const cats     = MENU_CATS.filter(c => usedCats.includes(c.id));
@@ -87,7 +87,7 @@ function setFilter(cat) { filterCat = cat; render(); }
 /* ── Items list ── */
 async function renderList() {
   let items = [];
-  try { items = await apiGetMenu(); } catch { items = getMenuItems(); }
+  try { items = await apiGetMenuAdmin(); } catch { items = getMenuItems(); }
   if (filterCat) items = items.filter(i => i.cat === filterCat);
 
   const wrap = document.getElementById('itemsList');
@@ -173,7 +173,7 @@ async function doDelete(id, name) {
 /* ── Edit modal ── */
 async function openEdit(id) {
   let items = [];
-  try { items = await apiGetMenu(); } catch { items = getMenuItems(); }
+  try { items = await apiGetMenuAdmin(); } catch { items = getMenuItems(); }
   const item = items.find(i => i.id === id);
   if (!item) return;
 
@@ -224,7 +224,7 @@ document.getElementById('editModal').addEventListener('click', e => {
 /* ── Export ── */
 async function exportData() {
   let items = [];
-  try { items = await apiGetMenu(); } catch { items = getMenuItems(); }
+  try { items = await apiGetMenuAdmin(); } catch { items = getMenuItems(); }
   const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
   const a    = Object.assign(document.createElement('a'), {
     href:     URL.createObjectURL(blob),
@@ -285,6 +285,7 @@ function initAdminTabs() {
       if (btn.dataset.tab === 'reports')  renderReportsTab();
       if (btn.dataset.tab === 'invoices') renderInvoicesTab();
       if (btn.dataset.tab === 'kitchen')  renderKitchenTab();
+      if (btn.dataset.tab === 'pos')      initPosTab();
     });
   });
   renderBookingsTab(); // Default tab
@@ -316,8 +317,9 @@ async function renderBookingsTab() {
         <div><span class="status-badge ${b.status}">${b.status}</span></div>
         <div class="ir-actions" style="flex-wrap:wrap;">
           ${b.status==='pending' ? `<button class="btn-edit" onclick="updateBooking('${b.id}', 'confirmed')">Nhận</button>` : ''}
-          ${b.status==='confirmed' ? `<button class="btn-edit" style="color:#4ade80;border-color:#4ade80" onclick="updateBooking('${b.id}', 'completed')">Hoàn thành</button>` : ''}
-          ${b.status!=='cancelled' && b.status!=='completed' ? `<button class="btn-del" onclick="updateBooking('${b.id}', 'cancelled')">Hủy</button>` : ''}
+          ${b.status==='confirmed' ? `<button class="btn-edit" style="color:#eab308;border-color:#eab308" onclick="updateBooking('${b.id}', 'in_use')">Check-in</button>` : ''}
+          ${b.status==='in_use' ? `<span style="font-size:0.8rem; color:#4ade80">👉 Sang tab Bán hàng để Thanh toán</span>` : ''}
+          ${b.status!=='cancelled' && b.status!=='completed' && b.status!=='in_use' ? `<button class="btn-del" onclick="updateBooking('${b.id}', 'cancelled')">Hủy</button>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -613,5 +615,505 @@ async function approveOrder(id) {
     renderKitchenTab();
   } catch(err) {
     showToast(err.message, true);
+  }
+}
+
+/* ══════════════════════════════════════
+   POS SYSTEM LOGIC
+   ══════════════════════════════════════ */
+
+let posState = {
+  cart: [],
+  carts: {}, // Multi-session cart persistence: { roomId: [...] }
+  pastOrders: [],
+  selectedRoom: null,
+  activeBooking: null,
+  activeBookings: [],
+  menuItems: [],
+  rooms: [],
+  currentCat: 'all',
+  floorFilter: 'all',
+  statusFilter: 'all'
+};
+
+async function initPosTab() {
+  if (posState.menuItems.length === 0) {
+    try {
+      posState.menuItems = await apiGetMenuAdmin();
+    } catch {
+        posState.menuItems = getMenuItems(); // fallback to static data
+    }
+  }
+  if (posState.rooms.length === 0) {
+    try {
+      const rRes = await apiGetRoomsAdmin();
+      posState.rooms = rRes.rooms;
+    } catch {
+      posState.rooms = [];
+    }
+  }
+
+  try {
+    const bRes = await apiGetBookingsAdmin({ status: 'in_use' });
+    posState.activeBookings = bRes.bookings || [];
+  } catch {
+    posState.activeBookings = [];
+  }
+
+  setupPosEvents();
+  renderPosMenu();
+  renderPosRooms();
+  renderPosOrder();
+}
+
+function setupPosEvents() {
+  // Main tabs: Thực đơn / Phòng bàn
+  document.querySelectorAll('.pos-main-tab').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.pos-main-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.posTab;
+      document.querySelectorAll('.pos-view').forEach(v => v.classList.remove('active'));
+      document.getElementById(`pos-view-${tab}`).classList.add('active');
+    };
+  });
+
+  // Category filter
+  document.querySelectorAll('.pos-cat-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.pos-cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      posState.currentCat = btn.dataset.cat;
+      renderPosMenu();
+    };
+  });
+
+  // Search input
+  const posSearch = document.getElementById('posSearchInput');
+  if (posSearch) {
+    posSearch.addEventListener('input', (e) => {
+      posState.searchQuery = e.target.value.toLowerCase();
+      renderPosMenu();
+    });
+  }
+}
+
+function renderPosMenu() {
+  const grid = document.getElementById('posItemsGrid');
+  let items = posState.menuItems;
+  
+  if (posState.currentCat !== 'all') {
+    if (posState.currentCat === 'time') {
+      items = items.filter(i => i.cat === 'time');
+    } else {
+      items = items.filter(i => i.tab === posState.currentCat);
+    }
+  }
+
+  if (posState.searchQuery) {
+    items = items.filter(i => i.name.toLowerCase().includes(posState.searchQuery));
+  }
+
+  grid.innerHTML = items.map(item => `
+    <div class="pos-item-card" ${item.available ? `onclick="posAddItem('${item.id}')"` : 'style="opacity: 0.5; pointer-events: none;"'}>
+      <div class="pos-item-name">${item.name}</div>
+      <span class="pos-item-price">${item.price.toLocaleString()}</span>
+      ${!item.available ? '<span style="position:absolute;top:5px;right:5px;background:#ef4444;color:white;font-size:0.7rem;padding:2px 4px;border-radius:4px;">Hết hàng</span>' : ''}
+    </div>
+  `).join('');
+}
+
+function posSetFloorFilter(f) { posState.floorFilter = f; renderPosRooms(); }
+function posSetStatusFilter(s) { posState.statusFilter = s; renderPosRooms(); }
+
+function renderPosRooms() {
+  const grid = document.getElementById('posRoomsGrid');
+  const floorTabs = document.getElementById('posFloorTabs');
+  const statusContainer = document.getElementById('posStatusFilters');
+
+  const floors = [...new Set(posState.rooms.map(r => r.floor))].sort((a,b)=>b-a);
+  
+  if (floorTabs) {
+    let floorHtml = `<button class="${posState.floorFilter === 'all' ? 'active' : ''}" onclick="posSetFloorFilter('all')">Tất cả</button>`;
+    floors.forEach(f => {
+      floorHtml += `<button class="${posState.floorFilter == f ? 'active' : ''}" onclick="posSetFloorFilter(${f})">Tầng ${f}</button>`;
+    });
+    floorTabs.innerHTML = floorHtml;
+  }
+
+  let filtered = posState.rooms;
+  if (posState.floorFilter !== 'all') {
+    filtered = filtered.filter(r => r.floor == posState.floorFilter);
+  }
+
+  const isRoomInUse = (roomId) => posState.activeBookings.some(b => b.room_id === roomId);
+
+  const countAll = filtered.length;
+  const countUsed = filtered.filter(r => isRoomInUse(r.id)).length;
+  const countFree = countAll - countUsed;
+
+  if (statusContainer) {
+    statusContainer.innerHTML = `
+      <button class="pos-filter-pill ${posState.statusFilter === 'all' ? 'active' : ''}" onclick="posSetStatusFilter('all')">
+        <span class="dot bg-blue"></span> Tất cả (${countAll})
+      </button>
+      <button class="pos-filter-pill ${posState.statusFilter === 'used' ? 'active' : ''}" onclick="posSetStatusFilter('used')">
+        <span class="dot bg-red"></span> Sử dụng (${countUsed})
+      </button>
+      <button class="pos-filter-pill ${posState.statusFilter === 'free' ? 'active' : ''}" onclick="posSetStatusFilter('free')">
+        <span class="dot bg-green"></span> Còn trống (${countFree})
+      </button>
+    `;
+  }
+
+  if (posState.statusFilter === 'used') {
+    filtered = filtered.filter(r => isRoomInUse(r.id));
+  } else if (posState.statusFilter === 'free') {
+    filtered = filtered.filter(r => !isRoomInUse(r.id));
+  }
+
+  grid.innerHTML = filtered.map(room => {
+    const inUse = isRoomInUse(room.id);
+    return `
+      <div class="pos-room-card ${posState.selectedRoom?.id === room.id ? 'active' : ''} ${inUse ? 'in-use' : ''}" 
+           onclick="posSelectRoom('${room.id}')">
+        <div class="pos-room-name">${room.name}</div>
+        <div class="pos-room-status">${inUse ? 'Đang dùng' : 'Trống'}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function posSelectRoom(roomId) {
+  const room = posState.rooms.find(r => r.id === roomId);
+  posState.selectedRoom = room;
+  posState.activeBooking = posState.activeBookings.find(b => b.room_id === roomId) || null;
+  posState.cart = posState.carts[roomId] || [];
+  posState.pastOrders = [];
+  
+  if (room) {
+    document.getElementById('posOrderTitle').innerText = `Phòng ${room.name} / Tầng ${room.floor}`;
+    if (posState.activeBooking) {
+      try {
+        const res = await apiGetBookingOrders(posState.activeBooking.id);
+        posState.pastOrders = res.orders || [];
+      } catch(e) {}
+    } else {
+      // Room is free -> show walk-in modal
+      document.getElementById('wRoomId').value = room.id;
+      document.getElementById('wRoomName').value = `Phòng ${room.name} (Tầng ${room.floor})`;
+      document.getElementById('wCustomerName').value = '';
+      document.getElementById('wCustomerPhone').value = '';
+      document.getElementById('wPeople').value = '2';
+      document.getElementById('wHours').value = '2';
+      document.getElementById('walkinModal').classList.add('active');
+    }
+  } else {
+    document.getElementById('posOrderTitle').innerText = 'Chưa chọn phòng';
+  }
+  
+  renderPosRooms();
+  renderPosOrder();
+}
+
+async function doCreateWalkin() {
+  const roomId = document.getElementById('wRoomId').value;
+  const name = document.getElementById('wCustomerName').value || 'Khách vãng lai';
+  const phone = document.getElementById('wCustomerPhone').value || '0000000000';
+  const people = parseInt(document.getElementById('wPeople').value);
+  const hours = parseFloat(document.getElementById('wHours').value);
+  
+  if (!roomId || isNaN(people) || isNaN(hours)) {
+    return showToast('Vui lòng nhập đầy đủ thông tin hợp lệ!', true);
+  }
+  
+  let now = new Date();
+  let startHour = now.getHours() + now.getMinutes()/60;
+  
+  // Handling late-night walk-ins (Midnight to 6 AM is considered part of the previous business day)
+  if (startHour < 6) {
+    startHour += 24;
+    now.setDate(now.getDate() - 1); // Shift date back by 1 day
+  }
+  
+  const pad = n => n.toString().padStart(2, '0');
+  const dateStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  const endHour = startHour + hours;
+
+  try {
+    const res = await apiCreateBooking({
+      roomId, date: dateStr, startHour, endHour, name, phone, people, note: 'Khách đến trực tiếp', channel: 'walk-in'
+    });
+    // Convert status to in_use immediately
+    const checkinRes = await apiUpdateBookingStatus(res.booking.id, 'in_use');
+    
+    showToast('✅ Đã tạo ca máy thành công!');
+    document.getElementById('walkinModal').classList.remove('active');
+    
+    // Refresh bookings
+    const bRes = await apiGetBookingsAdmin({ status: 'in_use' });
+    posState.activeBookings = bRes.bookings || [];
+    
+    // Select this room again to load the new activeBooking
+    await posSelectRoom(roomId);
+    renderBookingsTab();
+  } catch(e) {
+    showToast(e.message, true);
+  }
+}
+
+function posAddItem(itemId) {
+  if (!posState.selectedRoom) {
+    showToast('Vui lòng chọn phòng trước khi chọn món!', true);
+    return;
+  }
+  
+  const item = posState.menuItems.find(i => i.id === itemId);
+  if (!item) return;
+
+  const existing = posState.cart.find(c => c.item.id === itemId);
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    posState.cart.push({ item, qty: 1 });
+  }
+  posState.carts[posState.selectedRoom.id] = posState.cart;
+  renderPosOrder();
+}
+
+function posUpdateQty(itemId, delta) {
+  const cartItem = posState.cart.find(c => c.item.id === itemId);
+  if (!cartItem) return;
+  cartItem.qty += delta;
+  if (cartItem.qty <= 0) {
+    posState.cart = posState.cart.filter(c => c.item.id !== itemId);
+  }
+  posState.carts[posState.selectedRoom.id] = posState.cart;
+  renderPosOrder();
+}
+
+async function posAdjustHours(delta) {
+  if (!posState.activeBooking) return;
+  const b = posState.activeBooking;
+  const t2f = t => parseInt(t.split(':')[0]) + parseInt(t.split(':')[1])/60;
+  let end = t2f(b.end_time);
+  if (b.is_overnight) end += 24;
+  
+  let newEnd = end + delta;
+  let start = t2f(b.start_time);
+  if (newEnd <= start) {
+    showToast('Giờ kết thúc phải lớn hơn giờ bắt đầu!', true);
+    return;
+  }
+  
+  try {
+    const res = await apiUpdateBooking(b.id, { endHour: newEnd });
+    posState.activeBooking = res.booking;
+    showToast('Đã cập nhật giờ!');
+    renderPosOrder();
+  } catch(e) {
+    showToast(e.message, true);
+  }
+}
+
+function renderPosOrder() {
+  const list = document.getElementById('posOrderList');
+  const countEl = document.getElementById('posTotalCount');
+  const valEl = document.getElementById('posTotalValue');
+
+  let html = '';
+  let totalQty = 0;
+  let totalValue = 0;
+  let idx = 1;
+
+  if (!posState.selectedRoom) {
+    list.innerHTML = '<div class="pos-empty-cart">Vui lòng chọn một phòng để thao tác</div>';
+    countEl.innerText = 0;
+    valEl.innerText = 0;
+    return;
+  }
+
+  if (posState.activeBooking) {
+    const b = posState.activeBooking;
+    html += `
+      <div class="pos-time-row">
+        <div class="pos-time-info">
+          <div class="pos-time-title">${idx}. Giờ sử dụng</div>
+          <div class="pos-time-value">
+            ${b.start_time.slice(0,5)} <span class="arr">▶</span> ${b.end_time.slice(0,5)}
+          </div>
+        </div>
+        <div class="pos-time-controls">
+          <button onclick="posAdjustHours(-0.5)" title="Giảm 30p">-</button>
+          <span style="font-size:0.85rem">Giờ</span>
+          <button onclick="posAdjustHours(0.5)" title="Thêm 30p">+</button>
+        </div>
+      </div>
+    `;
+    idx++;
+
+    if (posState.pastOrders && posState.pastOrders.length > 0) {
+      posState.pastOrders.forEach(o => {
+        if (o.order_items) {
+          o.order_items.forEach(oi => {
+            totalQty += oi.quantity;
+            totalValue += (oi.amount * 1000);
+            html += `
+              <div class="pos-order-item" style="opacity: 0.85;">
+                <div class="pos-order-idx">${idx}.</div>
+                <div class="pos-oi-name">${oi.menu_items?.name || 'Món'} <span style="font-size:0.75rem; color:#4ade80">(Đã báo bếp)</span></div>
+                <div class="pos-oi-qty" style="justify-content:center">
+                  <span>${oi.quantity}</span>
+                </div>
+                <div class="pos-oi-price">${(oi.amount * 1000).toLocaleString()}</div>
+              </div>
+            `;
+            idx++;
+          });
+        }
+      });
+    }
+  }
+
+  if (posState.cart.length > 0) {
+    html += posState.cart.map((c) => {
+      totalQty += c.qty;
+      const itemTotal = c.qty * (c.item.price * 1000);
+      totalValue += itemTotal;
+      
+      const row = `
+        <div class="pos-order-item">
+          <div class="pos-order-idx">${idx}.</div>
+          <div class="pos-oi-name">${c.item.name} <span style="font-size:0.75rem; color:var(--accent)">(Chưa báo bếp)</span></div>
+          <div class="pos-oi-qty">
+            <button onclick="posUpdateQty('${c.item.id}', -1)">-</button>
+            <span>${c.qty}</span>
+            <button onclick="posUpdateQty('${c.item.id}', 1)">+</button>
+          </div>
+          <div class="pos-oi-price">${itemTotal.toLocaleString()}</div>
+        </div>
+      `;
+      idx++;
+      return row;
+    }).join('');
+  } else if (!posState.activeBooking || (posState.pastOrders.length === 0)) {
+    if (html.indexOf('pos-order-item') === -1) {
+      html += '<div class="pos-empty-cart">Phòng chưa gọi món nào</div>';
+    }
+  }
+
+  list.innerHTML = html;
+  countEl.innerText = totalQty;
+  valEl.innerText = totalValue.toLocaleString();
+}
+
+async function posShowCheckout() {
+  if (!posState.activeBooking) {
+    showToast('Vui lòng chọn phòng đang sử dụng để thanh toán!', true);
+    return;
+  }
+  if (posState.cart.length > 0) {
+    showToast('Bạn đang có món chưa Báo Bếp. Vui lòng bấm Báo Bếp trước!', true);
+    return;
+  }
+  
+  // Calculate raw total for preview
+  let foodTotal = 0;
+  if (posState.pastOrders) {
+    posState.pastOrders.forEach(o => {
+      // Ignore cancelled orders exactly as backend does
+      if (o.status !== 'cancelled' && o.order_items) {
+         o.order_items.forEach(oi => { foodTotal += oi.amount * 1000; });
+      }
+    });
+  }
+
+  document.getElementById('coRoomName').value = posState.selectedRoom.name;
+  document.getElementById('coFoodAmount').innerText = foodTotal.toLocaleString() + ' đ';
+  document.getElementById('coDiscount').value = 0;
+  document.getElementById('coSurcharge').value = 0;
+  document.getElementById('coNote').value = '';
+  document.getElementById('checkoutModal').classList.add('active');
+}
+
+async function posConfirmCheckout() {
+  const discount = parseInt(document.getElementById('coDiscount').value) || 0;
+  const extraSurcharge = parseInt(document.getElementById('coSurcharge').value) || 0;
+  const note = document.getElementById('coNote').value;
+
+  try {
+    const res = await apiCreateInvoice(posState.activeBooking.id, discount, extraSurcharge, note);
+    showToast('✅ Đã xuất hoá đơn thành công!');
+    document.getElementById('checkoutModal').classList.remove('active');
+    
+    posState.cart = [];
+    posState.carts[posState.selectedRoom.id] = [];
+    posState.activeBooking = null;
+    posState.selectedRoom = null;
+    document.getElementById('posOrderTitle').innerText = 'Bán lẻ';
+    
+    const rRes = await apiGetRoomsAdmin();
+    posState.rooms = rRes.rooms;
+    const bRes = await apiGetBookingsAdmin({ status: 'in_use' });
+    posState.activeBookings = bRes.bookings || [];
+    renderPosRooms();
+    renderPosOrder();
+    renderBookingsTab();
+  } catch(e) { showToast(e.message, true); }
+}
+
+async function posPushOrder() {
+  if (posState.cart.length === 0) {
+    showToast('Chưa có món nào để đẩy xuống bếp!', true);
+    return;
+  }
+  if (!posState.activeBooking) {
+    showToast('Phòng chưa có khách, không thể đặt món!', true);
+    return;
+  }
+  try {
+    const orderRes = await apiCreateOrder(posState.activeBooking.id, 'Order từ POS');
+    const orderId = orderRes.order.id;
+    for (const c of posState.cart) {
+      await apiAddOrderItem(orderId, c.item.id, c.qty, c.item.price);
+    }
+    showToast('✅ Đã tạo đơn đồ ăn gửi xuống bếp!');
+    posState.cart = [];
+    posState.carts[posState.selectedRoom.id] = [];
+    const res = await apiGetBookingOrders(posState.activeBooking.id);
+    posState.pastOrders = res.orders || [];
+    renderPosOrder();
+    renderKitchenTab();
+  } catch(e) { showToast(e.message, true); }
+}
+
+async function posCheckout() {
+  if (!posState.activeBooking) {
+    showToast('Vui lòng chọn phòng đang sử dụng để xuất hoá đơn!', true);
+    return;
+  }
+
+  try {
+    if (posState.cart.length > 0) {
+      await posPushOrder(); // Push any unsent food items first
+    }
+
+    const res = await apiCreateInvoice(posState.activeBooking.id, 0, 0);
+    showToast('✅ Đã xuất hoá đơn thành công!');
+    
+    posState.activeBooking = null;
+    posState.selectedRoom = null;
+    document.getElementById('posOrderTitle').innerText = 'Bán lẻ';
+    
+    const rRes = await apiGetRoomsAdmin();
+    posState.rooms = rRes.rooms;
+    const bRes = await apiGetBookingsAdmin({ status: 'in_use' });
+    posState.activeBookings = bRes.bookings || [];
+    renderPosRooms();
+    renderPosOrder();
+    renderBookingsTab();
+    renderInvoicesTab();
+  } catch(err) {
+    showToast('Lỗi: ' + err.message, true);
   }
 }

@@ -101,17 +101,32 @@ router.post('/',
     if (room.capacity_max && people > room.capacity_max)
       return res.status(400).json({ error: `Phòng chỉ chứa tối đa ${room.capacity_max} người` });
 
-    // Kiểm tra trùng lịch
+    // Kiểm tra trùng lịch (Xử lý xuyên đêm)
+    const prevDate = new Date(date); prevDate.setDate(prevDate.getDate() - 1);
+    const nextDate = new Date(date); nextDate.setDate(nextDate.getDate() + 1);
+    const dateList = [
+      prevDate.toISOString().split('T')[0],
+      date,
+      nextDate.toISOString().split('T')[0]
+    ];
+
     const { data: conflicts } = await supabase
       .from('bookings')
-      .select('id, start_time, end_time, is_overnight')
+      .select('id, start_time, end_time, is_overnight, booking_date')
       .eq('room_id', roomId)
-      .eq('booking_date', date)
+      .in('booking_date', dateList)
       .not('status', 'eq', 'cancelled');
 
     const hasConflict = conflicts?.some(b => {
-      const bStart = timeToFloat(b.start_time);
-      const bEnd   = timeToFloat(b.end_time) + (b.is_overnight ? 24 : 0);
+      let bStart = timeToFloat(b.start_time);
+      let bEnd   = timeToFloat(b.end_time) + (b.is_overnight ? 24 : 0);
+      
+      if (b.booking_date < date) {
+        bStart -= 24; bEnd -= 24;
+      } else if (b.booking_date > date) {
+        bStart += 24; bEnd += 24;
+      }
+
       return bStart < endHour && bEnd > startHour;
     });
     if (hasConflict)
@@ -155,7 +170,7 @@ router.post('/',
 
 // ── PATCH /api/bookings/:id/status — admin: đổi trạng thái ──
 router.patch('/:id/status', requireAdmin,
-  body('status').isIn(['pending','confirmed','cancelled','completed']).withMessage('Status không hợp lệ'),
+  body('status').isIn(['pending','confirmed','in_use','cancelled','completed']).withMessage('Status không hợp lệ'),
   validate,
   async (req, res) => {
     const { status } = req.body;
@@ -189,21 +204,42 @@ router.patch('/:id', requireAdmin,
     if (Object.keys(updates).length === 0)
       return res.status(400).json({ error: 'Không có trường hợp lệ để cập nhật' });
 
-    // Kiểm tra trùng lịch nếu đổi giờ
-    if (updates.start_time && updates.end_time) {
+    // Kiểm tra trùng lịch nếu đổi ngày hoặc giờ
+    if (updates.start_time || updates.end_time || updates.booking_date) {
       const { data: current } = await supabase
-        .from('bookings').select('room_id, booking_date').eq('id', req.params.id).single();
+        .from('bookings').select('*').eq('id', req.params.id).single();
+      
+      const targetDate = updates.booking_date || current.booking_date;
+      const tStartHour = updates.start_time ? req.body.startHour : timeToFloat(current.start_time);
+      const tEndHour = updates.end_time ? req.body.endHour : (timeToFloat(current.end_time) + (current.is_overnight ? 24 : 0));
+
+      const prevDate = new Date(targetDate); prevDate.setDate(prevDate.getDate() - 1);
+      const nextDate = new Date(targetDate); nextDate.setDate(nextDate.getDate() + 1);
+      const dateList = [
+        prevDate.toISOString().split('T')[0],
+        targetDate,
+        nextDate.toISOString().split('T')[0]
+      ];
+
       const { data: conflicts } = await supabase
         .from('bookings')
-        .select('id, start_time, end_time, is_overnight')
+        .select('id, start_time, end_time, is_overnight, booking_date')
         .eq('room_id', current.room_id)
-        .eq('booking_date', updates.booking_date || current.booking_date)
+        .in('booking_date', dateList)
         .not('status', 'eq', 'cancelled')
         .neq('id', req.params.id);
+
       const hasConflict = conflicts?.some(b => {
-        const bStart = timeToFloat(b.start_time);
-        const bEnd   = timeToFloat(b.end_time) + (b.is_overnight ? 24 : 0);
-        return bStart < req.body.endHour && bEnd > req.body.startHour;
+        let bStart = timeToFloat(b.start_time);
+        let bEnd   = timeToFloat(b.end_time) + (b.is_overnight ? 24 : 0);
+        
+        if (b.booking_date < targetDate) {
+          bStart -= 24; bEnd -= 24;
+        } else if (b.booking_date > targetDate) {
+          bStart += 24; bEnd += 24;
+        }
+        
+        return bStart < tEndHour && bEnd > tStartHour;
       });
       if (hasConflict)
         return res.status(409).json({ error: 'Khung giờ mới bị trùng với booking khác' });

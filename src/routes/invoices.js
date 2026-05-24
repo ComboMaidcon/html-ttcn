@@ -119,11 +119,12 @@ router.post('/',
     if (booking.status === 'cancelled')
       return res.status(400).json({ error: 'Booking đã huỷ, không thể xuất hoá đơn' });
 
-    // Lấy orders + items
+    // Lấy orders + items (Bỏ qua các order đã bị Hủy/Từ chối)
     const { data: orders } = await supabase
       .from('orders')
-      .select('id, order_items(id, quantity, unit_price, variant, note, amount, menu_item_id, menu_items(name))')
-      .eq('booking_id', bookingId);
+      .select('id, status, order_items(id, quantity, unit_price, variant, note, amount, menu_item_id, menu_items(name))')
+      .eq('booking_id', bookingId)
+      .not('status', 'eq', 'cancelled');
 
     const { total: roomAmount, breakdown, dayType } = await calcRoomAmount(booking, booking.rooms);
     const allItems   = orders?.flatMap(o => o.order_items) || [];
@@ -138,7 +139,9 @@ router.post('/',
         food_amount:    foodAmount,
         surcharge:      surcharge,
         discount:       parseInt(discount),
-        payment_status: 'unpaid',
+        payment_status: 'paid',
+        payment_method: 'cash',
+        paid_at:        new Date(),
         created_by:     req.admin?.id || null,
         note:           note?.trim() || null,
       }])

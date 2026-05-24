@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  CONSTRAINT valid_status  CHECK (status  IN ('pending','confirmed','cancelled','completed')),
+  CONSTRAINT valid_status  CHECK (status  IN ('pending','confirmed','in_use','cancelled','completed')),
   CONSTRAINT valid_channel CHECK (channel IN ('website','call','facebook','zalo','walk-in')),
   CONSTRAINT valid_people  CHECK (people >= 1 AND people <= 10),
   CONSTRAINT valid_times   CHECK (start_time <> end_time)

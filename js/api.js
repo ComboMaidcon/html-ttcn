@@ -55,7 +55,7 @@ async function apiGetBookingsAdmin({ date, status, page = 1 } = {}) {
 }
 
 async function apiUpdateBookingStatus(id, status) {
-  return apiFetch(`/api/bookings/${id}`, { method: 'PATCH', body: { status } });
+  return apiFetch(`/api/bookings/${id}/status`, { method: 'PATCH', body: { status } });
 }
 
 /* ════════════════════════════════
@@ -75,6 +75,20 @@ async function apiUpdateRoom(id, changes) {
 async function apiGetMenu(tab = null) {
   const qs  = tab ? `?tab=${tab}` : '';
   const res = await apiFetch(`/api/menu${qs}`);
+  return res.items.map(i => ({
+    id:        i.id,
+    tab:       i.tab,
+    cat:       i.category,
+    name:      i.name,
+    price:     i.price,
+    desc:      i.description,
+    variants:  i.variants,
+    available: i.is_available,
+  }));
+}
+
+async function apiGetMenuAdmin() {
+  const res = await apiFetch('/api/menu/admin');
   return res.items.map(i => ({
     id:        i.id,
     tab:       i.tab,
@@ -109,7 +123,7 @@ async function apiUpdateMenuItem(id, changes) {
       price:        changes.price,
       description:  changes.desc,
       variants:     changes.variants,
-      is_available: changes.available,
+      isAvailable:  changes.available,
       category:     changes.cat,
     },
   });
@@ -197,8 +211,40 @@ async function apiGetOrdersAdmin() {
   return apiFetch('/api/orders/admin');
 }
 
+async function apiGetBookingOrders(bookingId) {
+  return apiFetch(`/api/orders?bookingId=${bookingId}`);
+}
+
 async function apiApproveOrder(id) {
   return apiFetch(`/api/orders/admin/${id}`, {
     method: 'PATCH'
+  });
+}
+
+async function apiCreateOrder(bookingId, note) {
+  return apiFetch('/api/orders', {
+    method: 'POST',
+    body: { bookingId, note }
+  });
+}
+
+async function apiAddOrderItem(orderId, menuItemId, quantity, unitPrice) {
+  return apiFetch(`/api/orders/${orderId}/items`, {
+    method: 'POST',
+    body: { menuItemId, quantity, unitPrice }
+  });
+}
+
+async function apiUpdateBooking(id, data) {
+  return apiFetch(`/api/bookings/${id}`, {
+    method: 'PATCH',
+    body: data
+  });
+}
+
+async function apiCreateInvoice(bookingId, discount = 0, extraSurcharge = 0, note = '') {
+  return apiFetch('/api/invoices', {
+    method: 'POST',
+    body: { bookingId, discount, extraSurcharge, note }
   });
 }

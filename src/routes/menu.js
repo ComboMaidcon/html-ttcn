@@ -19,6 +19,17 @@ router.get('/', async (req, res) => {
   res.json({ items: data });
 });
 
+// GET /api/menu/admin — admin (lấy tất cả món kể cả hết hàng)
+router.get('/admin', requireAdmin, async (req, res) => {
+  let query = supabase.from('menu_items').select('*')
+    .order('category')
+    .order('sort_order')
+    .order('created_at');
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ items: data });
+});
+
 // POST /api/menu — admin
 router.post('/', requireAdmin,
   body('tab').isIn(['drink','food']).withMessage('tab phải là drink hoặc food'),

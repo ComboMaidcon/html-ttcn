@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/admin.css">
+  <link rel="stylesheet" href="../css/pos.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -49,6 +50,7 @@
         <button class="sidebar-tab"        data-tab="menu">🍔 Thực đơn</button>
         <button class="sidebar-tab"        data-tab="rooms">🚪 Phòng</button>
         <button class="sidebar-tab"        data-tab="reviews">⭐ Đánh giá</button>
+        <button class="sidebar-tab"        data-tab="pos" style="margin-top:auto; font-weight:bold; color:var(--gold);">💳 Bán hàng (POS)</button>
       </div>
 
       <!-- Main Content -->
@@ -232,6 +234,75 @@
       <div id="itemsList"></div>
     </div>
         </div> <!-- end #tab-menu -->
+
+        <!-- ================= POS TAB ================= -->
+        <div class="admin-tab-content" id="tab-pos" style="padding:0; height:100%; background: #1a1d24; color: #fff;">
+          <div class="pos-layout">
+            <!-- Left Panel -->
+            <div class="pos-left">
+              <div class="pos-left-header">
+                <div class="pos-main-tabs">
+                  <button class="pos-main-tab active" data-pos-tab="menu">Thực đơn</button>
+                  <button class="pos-main-tab" data-pos-tab="rooms">Phòng bàn</button>
+                </div>
+                <div class="pos-search">
+                  <input type="text" placeholder="🔍 Tìm món" id="posSearchInput">
+                </div>
+              </div>
+              
+              <!-- Menu View -->
+              <div class="pos-view active" id="pos-view-menu">
+                <div class="pos-cats" id="posCats">
+                  <button class="pos-cat-btn active" data-cat="all">Tất cả</button>
+                  <button class="pos-cat-btn" data-cat="food">Đồ Ăn Vặt</button>
+                  <button class="pos-cat-btn" data-cat="drink">Pha Chế</button>
+                  <button class="pos-cat-btn" data-cat="time">Giờ</button>
+                </div>
+                <div class="pos-items-grid" id="posItemsGrid"></div>
+              </div>
+
+              <!-- Rooms View -->
+              <div class="pos-view" id="pos-view-rooms">
+                <div class="pos-room-filters">
+                  <div class="pos-floor-tabs" id="posFloorTabs">
+                    <button class="active" data-floor="all">Tất cả</button>
+                  </div>
+                  <div class="pos-status-filters" id="posStatusFilters">
+                    <button class="pos-filter-pill active" onclick="posSetStatusFilter('all')"><span class="dot bg-blue"></span> Tất cả (0)</button>
+                    <button class="pos-filter-pill" onclick="posSetStatusFilter('used')"><span class="dot bg-red"></span> Sử dụng (0)</button>
+                    <button class="pos-filter-pill" onclick="posSetStatusFilter('free')"><span class="dot bg-green"></span> Còn trống (0)</button>
+                  </div>
+                </div>
+                <div class="pos-rooms-grid" id="posRoomsGrid"></div>
+              </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="pos-right">
+              <div class="pos-right-header">
+                <div class="pos-order-title" id="posOrderTitle">Bán lẻ</div>
+              </div>
+              
+              <div class="pos-order-list" id="posOrderList">
+                <div class="pos-empty-cart">Chưa có sản phẩm nào trong đơn hàng</div>
+              </div>
+
+              <div class="pos-order-bottom">
+                <div class="pos-totals">
+                  <div class="pos-total-row">
+                    <span>Tổng tiền (<span id="posTotalCount" style="color:var(--accent)">0</span>)</span>
+                    <span class="pos-total-val" id="posTotalValue">0</span>
+                  </div>
+                </div>
+                <div class="pos-actions">
+                  <button class="pos-btn-noti" onclick="posPushOrder()">🔔 Đặt món</button>
+                  <button class="pos-btn-pay" onclick="posShowCheckout()">💲 Thanh toán</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div> <!-- end #tab-pos -->
+
       </div> <!-- end .admin-main -->
     </div> <!-- end .admin-layout -->
   </div> <!-- end #adminApp -->
@@ -264,6 +335,74 @@
       <div class="modal-footer">
         <button class="btn-cancel" onclick="closeModal()">Hủy</button>
         <button class="btn-save"   onclick="doSaveEdit()">Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Walk-in Modal -->
+  <div class="modal-overlay" id="walkinModal">
+    <div class="modal">
+      <div class="modal-title">🚪 Mở phòng khách đến trực tiếp</div>
+      <div class="modal-grid">
+        <div class="fg" style="grid-column:1/-1">
+          <span class="fl">Phòng</span>
+          <input id="wRoomName" readonly style="background:var(--dark3); border:none; font-weight:bold; color:var(--gold);">
+          <input type="hidden" id="wRoomId">
+        </div>
+        <div class="fg">
+          <span class="fl">Tên khách (Không bắt buộc)</span>
+          <input id="wCustomerName" placeholder="Khách vãng lai">
+        </div>
+        <div class="fg">
+          <span class="fl">SĐT (Không bắt buộc)</span>
+          <input id="wCustomerPhone" placeholder="09xxxx">
+        </div>
+        <div class="fg">
+          <span class="fl">Số người</span>
+          <input id="wPeople" type="number" value="2" min="1" max="10">
+        </div>
+        <div class="fg">
+          <span class="fl">Giờ chơi dự kiến (tiếng)</span>
+          <input id="wHours" type="number" value="2" min="0.5" step="0.5">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="document.getElementById('walkinModal').classList.remove('active')">Hủy</button>
+        <button class="btn-save"   onclick="doCreateWalkin()">Mở Phòng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout Modal -->
+  <div class="modal-overlay" id="checkoutModal">
+    <div class="modal">
+      <div class="modal-title">💵 Xác nhận Thanh Toán</div>
+      <div class="modal-grid">
+        <div class="fg" style="grid-column:1/-1">
+          <span class="fl">Phòng đang thanh toán</span>
+          <input id="coRoomName" readonly style="background:var(--dark3); border:none; font-weight:bold; color:var(--gold);">
+        </div>
+        <div class="fg" style="grid-column:1/-1">
+          <span class="fl">Tổng tiền đồ ăn (Tạm tính)</span>
+          <div id="coFoodAmount" style="font-size: 1.2rem; font-weight: bold; padding: 0.5rem; background: var(--dark3); border-radius: 4px;">0 đ</div>
+          <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;">* Tiền phòng thực tế sẽ được Backend tự động tính chính xác tại thời điểm chốt.</div>
+        </div>
+        <div class="fg">
+          <span class="fl">Giảm giá (VNĐ)</span>
+          <input id="coDiscount" type="number" value="0" min="0">
+        </div>
+        <div class="fg">
+          <span class="fl">Phụ thu khác (VNĐ)</span>
+          <input id="coSurcharge" type="number" value="0" min="0">
+        </div>
+        <div class="fg" style="grid-column:1/-1">
+          <span class="fl">Ghi chú</span>
+          <input id="coNote" placeholder="Khách phàn nàn / Chuyển khoản thiếu...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="document.getElementById('checkoutModal').classList.remove('active')">Hủy</button>
+        <button class="btn-save" style="background:#4ade80" onclick="posConfirmCheckout()">Chốt Hóa Đơn</button>
       </div>
     </div>
   </div>

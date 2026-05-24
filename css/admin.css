@@ -24,7 +24,7 @@ body { background:var(--black); }
 .login-hint { font-size:.72rem; color:rgba(245,197,24,.3); margin-top:1.2rem; }
 
 /* ── Admin layout ── */
-#adminApp { display:none; max-width:1000px; margin:0 auto; padding:2rem 2rem 5rem; }
+#adminApp { display:none; max-width:1440px; margin:0 auto; padding:2rem 2rem 5rem; }
 .admin-header {
   display:flex; align-items:center; justify-content:space-between;
   padding:1.5rem 0 1.5rem;
@@ -138,8 +138,8 @@ body { background:var(--black); }
 .tab-header h2 { font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800; color:var(--white); }
 .bookings-head { grid-template-columns:100px 70px 100px 1fr 100px 140px; }
 .item-row.booking-row { grid-template-columns:100px 70px 100px 1fr 100px 140px; }
-.rooms-head { grid-template-columns:150px 80px 100px 100px 100px; }
-.item-row.room-row { grid-template-columns:150px 80px 100px 100px 100px; }
+.rooms-head { grid-template-columns:250px 1fr 1fr 1fr 150px; }
+.item-row.room-row { grid-template-columns:250px 1fr 1fr 1fr 150px; }
 .reviews-head { grid-template-columns:120px 100px 80px 1fr 100px 120px; }
 .item-row.review-row { grid-template-columns:120px 100px 80px 1fr 100px 120px; }
 
