@@ -420,11 +420,39 @@ async function deleteReview(id) {
 
 /* ── Reports Tab ── */
 let chartInstances = {};
+let currentReportData = null; // Store for export
+
+function toggleDayDropdown() {
+    const dd = document.getElementById('dayDropdown');
+    dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+
+function updateDaySelectText() {
+    const checked = document.querySelectorAll('#repDaysContainer input:checked').length;
+    const txt = document.getElementById('daySelectText');
+    if (checked === 7) txt.innerText = 'Cả tuần';
+    else if (checked === 0) txt.innerText = 'Chưa chọn';
+    else txt.innerText = checked + ' ngày';
+}
+
+// Close dropdown if clicked outside
+document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('daySelectWrap');
+    const dd = document.getElementById('dayDropdown');
+    if (wrap && dd && !wrap.contains(e.target)) {
+        dd.style.display = 'none';
+    }
+});
+
 async function renderReportsTab() {
   const startInput = document.getElementById('repStart');
   const endInput   = document.getElementById('repEnd');
+  const timeInput  = document.getElementById('repTime');
+  const dayInput   = document.getElementById('repDay');
+  const chanInput  = document.getElementById('repChannel');
+  const roomInput  = document.getElementById('repRoom');
+  const menuInput  = document.getElementById('repMenu');
   
-  // Set default to last 30 days if empty
   if (!startInput.value || !endInput.value) {
     const today = new Date();
     endInput.value = today.toISOString().split('T')[0];
@@ -433,42 +461,109 @@ async function renderReportsTab() {
     startInput.value = past30.toISOString().split('T')[0];
   }
 
+  // Fetch room and menu selects if empty (first load)
+  if (roomInput && roomInput.options.length <= 1) {
+      let rooms = posState.rooms;
+      if (!rooms || rooms.length === 0) {
+          const rRes = await apiGetRoomsAdmin();
+          rooms = rRes.rooms || [];
+          posState.rooms = rooms; // cache it
+      }
+      rooms.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r.name; opt.innerText = r.name;
+          roomInput.appendChild(opt);
+      });
+  }
+  if (menuInput && menuInput.options.length <= 1) {
+      let menuItems = posState.menuItems;
+      if (!menuItems || menuItems.length === 0) {
+          menuItems = await apiGetMenuAdmin();
+          posState.menuItems = menuItems; // cache it
+      }
+      menuItems.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.name; opt.innerText = m.name;
+          menuInput.appendChild(opt);
+      });
+  }
+
+  // Get selected days
+  const checkedDays = Array.from(document.querySelectorAll('#repDaysContainer input:checked')).map(cb => cb.value).join(',');
+
   try {
-    const res = await apiGetReportsDashboard(startInput.value, endInput.value);
+    const res = await apiGetReportsDashboard(
+       startInput.value, endInput.value, 
+       timeInput?.value, checkedDays || 'none', chanInput?.value,
+       roomInput?.value, menuInput?.value
+    );
+    currentReportData = res;
     
     // 1. Overview Stats
     const statsWrap = document.getElementById('reportStats');
+    const ov = res.overview;
     statsWrap.innerHTML = `
       <div class="stat-card">
-        <div class="stat-num">${(res.overview.totalRevenue / 1000000).toFixed(1)}M</div>
+        <div class="stat-num">${(ov.totalRevenue / 1000).toLocaleString()}K</div>
         <div class="stat-label">TỔNG DOANH THU</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num">${res.overview.totalBookings}</div>
+        <div class="stat-num">${ov.totalBookings}</div>
         <div class="stat-label">LƯỢT ĐẶT PHÒNG</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num">${res.overview.totalReviews}</div>
-        <div class="stat-label">ĐÁNH GIÁ</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num">${res.overview.avgRating} <span style="font-size:1rem;color:var(--gold)">⭐</span></div>
-        <div class="stat-label">ĐIỂM TRUNG BÌNH</div>
+        <div class="stat-num" style="color: #4ade80">${(ov.avgRevPerBooking / 1000).toLocaleString()}K</div>
+        <div class="stat-label">ARPU (DOANH THU / LƯỢT)</div>
       </div>
     `;
 
-    // Helper to destroy old charts to prevent overlapping when re-rendering
+    // 2. Revenue Breakdown
+    const total = ov.totalRevenue || 1; // prevent divide by zero
+    const pct = (val) => ((val / total) * 100).toFixed(1) + '%';
+    document.getElementById('revenueBreakdown').innerHTML = `
+      <div style="display:flex; justify-content:space-between; margin-bottom: 5px">
+        <span>Tiền Phòng: <strong>${(ov.roomRevenue / 1000).toLocaleString()}K</strong></span>
+        <span style="color:var(--muted)">${pct(ov.roomRevenue)}</span>
+      </div>
+      <div style="width:100%; background:var(--dark3); height:8px; border-radius:4px; margin-bottom: 15px">
+        <div style="width:${pct(ov.roomRevenue)}; background:var(--gold); height:100%; border-radius:4px"></div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-bottom: 5px">
+        <span>Dịch vụ (F&B): <strong>${(ov.foodRevenue / 1000).toLocaleString()}K</strong></span>
+        <span style="color:var(--muted)">${pct(ov.foodRevenue)}</span>
+      </div>
+      <div style="width:100%; background:var(--dark3); height:8px; border-radius:4px; margin-bottom: 15px">
+        <div style="width:${pct(ov.foodRevenue)}; background:#4ade80; height:100%; border-radius:4px"></div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-bottom: 5px">
+        <span>Phụ thu: <strong>${(ov.surcharge / 1000).toLocaleString()}K</strong></span>
+        <span style="color:var(--muted)">${pct(ov.surcharge)}</span>
+      </div>
+      <div style="width:100%; background:var(--dark3); height:8px; border-radius:4px; margin-bottom: 15px">
+        <div style="width:${pct(ov.surcharge)}; background:#f87171; height:100%; border-radius:4px"></div>
+      </div>
+      
+      <div style="display:flex; justify-content:space-between; margin-bottom: 5px">
+        <span>Giảm giá: <strong style="color:#f87171">-${(ov.discount / 1000).toLocaleString()}K</strong></span>
+      </div>
+    `;
+
+    // Helper to destroy old charts
     const setupChart = (ctxId, config) => {
       if (chartInstances[ctxId]) chartInstances[ctxId].destroy();
-      const ctx = document.getElementById(ctxId).getContext('2d');
-      chartInstances[ctxId] = new Chart(ctx, config);
+      const el = document.getElementById(ctxId);
+      if(el) {
+          const ctx = el.getContext('2d');
+          chartInstances[ctxId] = new Chart(ctx, config);
+      }
     };
 
-    // Chart Global Config for dark theme
     Chart.defaults.color = 'rgba(255, 255, 255, 0.6)';
     Chart.defaults.borderColor = 'rgba(245, 197, 24, 0.05)';
 
-    // 2. Revenue Line Chart
+    // 3. Line Chart
     setupChart('revenueChart', {
       type: 'line',
       data: {
@@ -486,38 +581,75 @@ async function renderReportsTab() {
       options: { responsive: true, plugins: { legend: { display: false } } }
     });
 
-    // 3. Menu Bar Chart
-    setupChart('menuChart', {
-      type: 'bar',
-      data: {
-        labels: res.menuPerformance.labels,
-        datasets: [{
-          label: 'Lượt gọi',
-          data: res.menuPerformance.data,
-          backgroundColor: '#4ade80',
-          borderRadius: 4
-        }]
-      },
-      options: { responsive: true, plugins: { legend: { display: false } } }
-    });
+    // 4. Room Performance Table
+    const rTable = document.getElementById('roomPerfTable');
+    if(rTable) {
+        if(res.roomsPerformance.length === 0) {
+            rTable.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted)">Không có dữ liệu</td></tr>';
+        } else {
+            rTable.innerHTML = res.roomsPerformance.slice(0,10).map(r => `
+              <tr>
+                <td style="font-weight:bold;color:var(--gold)">${r.name}</td>
+                <td>${r.count}</td>
+                <td>${(r.revenue / 1000).toLocaleString()}K</td>
+              </tr>
+            `).join('');
+        }
+    }
 
-    // 4. Rooms Doughnut Chart
-    setupChart('roomsChart', {
-      type: 'doughnut',
-      data: {
-        labels: res.roomsPerformance.labels,
-        datasets: [{
-          data: res.roomsPerformance.data,
-          backgroundColor: ['#f5c518', '#f87171', '#4ade80', '#60a5fa', '#a78bfa'],
-          borderWidth: 0
-        }]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'right' } } }
-    });
+    // 5. Menu Performance Table
+    const mTable = document.getElementById('menuPerfTable');
+    if(mTable) {
+        if(res.menuPerformance.length === 0) {
+            mTable.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted)">Không có dữ liệu</td></tr>';
+        } else {
+            mTable.innerHTML = res.menuPerformance.slice(0,10).map(m => `
+              <tr>
+                <td style="font-weight:bold;color:#4ade80">${m.name}</td>
+                <td>${m.qty}</td>
+                <td>${(m.revenue / 1000).toLocaleString()}K</td>
+              </tr>
+            `).join('');
+        }
+    }
 
   } catch(err) {
     showToast('Lỗi tải báo cáo: ' + err.message, true);
   }
+}
+
+function exportReportData() {
+    if(!currentReportData) return showToast('Chưa có dữ liệu để xuất', true);
+    
+    let csv = '\uFEFF'; // BOM for UTF-8 Excel
+    csv += 'BAO CAO DOANH THU TONG QUAT\n';
+    csv += `Tong Doanh Thu,${currentReportData.overview.totalRevenue}\n`;
+    csv += `Luot Dat Phong,${currentReportData.overview.totalBookings}\n`;
+    csv += `ARPU,${currentReportData.overview.avgRevPerBooking}\n`;
+    csv += `Tien Phong,${currentReportData.overview.roomRevenue}\n`;
+    csv += `Tien Dich Vu,${currentReportData.overview.foodRevenue}\n`;
+    csv += `Phu Thu,${currentReportData.overview.surcharge}\n`;
+    csv += `Giam Gia,${currentReportData.overview.discount}\n\n`;
+
+    csv += 'HIEU SUAT PHONG\n';
+    csv += 'Phong,So Luot,Doanh Thu\n';
+    currentReportData.roomsPerformance.forEach(r => {
+        csv += `"${r.name}",${r.count},${r.revenue}\n`;
+    });
+    csv += '\n';
+
+    csv += 'TIEU THU DICH VU\n';
+    csv += 'Ten Mon,So Luong,Doanh Thu\n';
+    currentReportData.menuPerformance.forEach(m => {
+        csv += `"${m.name}",${m.qty},${m.revenue}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Bao_Cao_Doanh_Thu_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    showToast('📥 Đã xuất file CSV');
 }
 
 /* ── Invoices Tab ── */

@@ -190,10 +190,15 @@ function apiIsLoggedIn() {
 /* ════════════════════════════════
    REPORTS
    ════════════════════════════════ */
-async function apiGetReportsDashboard(startDate, endDate) {
+async function apiGetReportsDashboard(startDate, endDate, timeOfDay, dayOfWeek, channel, roomName, menuName) {
   const qs = new URLSearchParams();
   if (startDate) qs.set('startDate', startDate);
   if (endDate) qs.set('endDate', endDate);
+  if (timeOfDay) qs.set('timeOfDay', timeOfDay);
+  if (dayOfWeek) qs.set('dayOfWeek', dayOfWeek);
+  if (channel) qs.set('channel', channel);
+  if (roomName) qs.set('roomName', roomName);
+  if (menuName) qs.set('menuName', menuName);
   return apiFetch(`/api/reports/dashboard?${qs}`);
 }
 

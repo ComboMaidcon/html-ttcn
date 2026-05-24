@@ -1,14 +1,13 @@
 const router = require('express').Router();
-const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { requireAdmin } = require('../middleware/auth');
 const supabase = require('../lib/supabase');
 
 // GET /api/reports/dashboard — admin
 router.get('/dashboard', requireAdmin, async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, timeOfDay, dayOfWeek, channel, roomName, menuName } = req.query;
     
-    // Xây dựng điều kiện lọc thời gian chung
-    // Nếu không có, mặc định lấy 30 ngày qua
+    // Default to last 30 days
     let start = startDate;
     let end = endDate;
     if (!start || !end) {
@@ -19,87 +18,130 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       start = past30.toISOString().split('T')[0];
     }
 
-    // Lấy doanh thu từ Invoices
-    let invQuery = supabase.from('invoices').select('total_amount, created_at');
-    invQuery = invQuery.gte('created_at', start + 'T00:00:00Z').lte('created_at', end + 'T23:59:59Z');
-    const { data: invoices, error: invErr } = await invQuery;
+    // 1. Fetch ALL invoices in the date range with their booking details
+    const { data: invoices, error: invErr } = await supabase
+      .from('invoices')
+      .select('*, bookings!inner(booking_date, start_time, is_overnight, channel, rooms(name))')
+      .gte('created_at', start + 'T00:00:00Z')
+      .lte('created_at', end + 'T23:59:59Z');
+
     if (invErr) throw invErr;
 
-    const totalRevenue = invoices.reduce((sum, inv) => sum + inv.total_amount, 0);
+    // 2. Filter locally based on advanced custom filters
+    const filteredInvoices = invoices.filter(inv => {
+      const b = inv.bookings;
+      
+      // Filter Channel
+      if (channel && channel !== 'all' && b.channel !== channel) return false;
+      
+      // Filter Room
+      if (roomName && roomName !== 'all' && b.rooms?.name !== roomName) return false;
+      
+      // Filter Day of Week
+      if (dayOfWeek && dayOfWeek !== '0,1,2,3,4,5,6') { // if not all checked
+         if (dayOfWeek === 'none') return false; // if nothing checked
+         const d = new Date(b.booking_date).getDay(); // 0 is Sunday, 1 is Mon...
+         if (!dayOfWeek.split(',').includes(d.toString())) {
+             return false;
+         }
+      }
+      
+      // Filter Time of Day
+      if (timeOfDay && timeOfDay !== 'all') {
+         const [h, m] = b.start_time.split(':').map(Number);
+         const startF = h + m/60;
+         let isMorning = startF >= 6 && startF < 17;
+         let isEvening = startF >= 17 && startF < 22;
+         let isNight = startF >= 22 || startF < 6;
+         
+         if (timeOfDay === 'morning' && !isMorning) return false;
+         if (timeOfDay === 'evening' && !isEvening) return false;
+         if (timeOfDay === 'night' && !isNight) return false;
+      }
+      return true;
+    });
 
-    // Group doanh thu theo ngày (để vẽ biểu đồ)
-    const revByDate = {};
-    invoices.forEach(inv => {
+    // 3. Calculate Core Metrics & Revenue Breakdown
+    let totalRevenue = 0, roomRevenue = 0, foodRevenue = 0, surcharge = 0, discount = 0;
+    let roomPerf = {}; // { roomName: { count, revenue } }
+    let revByDate = {}; // For the trend line
+
+    filteredInvoices.forEach(inv => {
+      totalRevenue += inv.total_amount;
+      roomRevenue += inv.room_amount;
+      foodRevenue += inv.food_amount;
+      surcharge += inv.surcharge;
+      discount += inv.discount;
+      
+      // Room Performance
+      const rName = inv.bookings.rooms?.name || 'Khác';
+      if (!roomPerf[rName]) roomPerf[rName] = { count: 0, revenue: 0 };
+      roomPerf[rName].count += 1;
+      roomPerf[rName].revenue += inv.total_amount;
+
+      // Revenue by Date
       const date = inv.created_at.split('T')[0];
       if (!revByDate[date]) revByDate[date] = 0;
       revByDate[date] += inv.total_amount;
     });
-    // Sort dates
+
+    const totalBookings = filteredInvoices.length;
+    const avgRevPerBooking = totalBookings > 0 ? Math.round(totalRevenue / totalBookings) : 0;
+
+    // Sort dates for Line Chart
     const sortedDates = Object.keys(revByDate).sort();
     const revLabels = sortedDates.length ? sortedDates : [start, end];
     const revData = sortedDates.length ? sortedDates.map(d => revByDate[d]) : [0, 0];
 
-    // Lấy tổng số bookings
-    let bkQuery = supabase.from('bookings').select('id', { count: 'exact' });
-    bkQuery = bkQuery.gte('booking_date', start).lte('booking_date', end);
-    const { count: totalBookings, error: bkErr } = await bkQuery;
-    if (bkErr) throw bkErr;
-
-    // Lấy đánh giá
-    let rvQuery = supabase.from('reviews').select('rating', { count: 'exact' });
-    rvQuery = rvQuery.gte('created_at', start + 'T00:00:00Z').lte('created_at', end + 'T23:59:59Z');
-    const { data: reviews, count: totalReviews, error: rvErr } = await rvQuery;
-    if (rvErr) throw rvErr;
-
-    let avgRating = 0;
-    if (reviews && reviews.length > 0) {
-      avgRating = (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1);
+    // 4. Fetch Menu Performance (Food/Drink only)
+    let topMenu = [];
+    if (filteredInvoices.length > 0) {
+      const validInvoiceIds = filteredInvoices.map(i => i.id);
+      
+      // We chunk the IN clause just in case there are thousands of invoices
+      // For simplicity, assuming < 1000 invoices per filter
+      const { data: foodItems } = await supabase
+        .from('invoice_items')
+        .select('description, quantity, unit_price')
+        .eq('item_type', 'food')
+        .in('invoice_id', validInvoiceIds);
+        
+      const menuCounts = {};
+      if (foodItems) {
+        foodItems.forEach(item => {
+          if (menuName && menuName !== 'all' && item.description !== menuName && !item.description.startsWith(menuName)) return;
+          // Normalize name by removing variants to group better, or keep as is. Keeping as is for accuracy.
+          menuCounts[item.description] = menuCounts[item.description] || { qty: 0, revenue: 0 };
+          menuCounts[item.description].qty += item.quantity;
+          menuCounts[item.description].revenue += (item.quantity * item.unit_price);
+        });
+      }
+      topMenu = Object.entries(menuCounts)
+        .map(([name, stats]) => ({ name, ...stats }))
+        .sort((a,b) => b.revenue - a.revenue); // Sort by revenue descending
     }
 
-    // Tần suất đặt phòng (Dựa vào bookings hoàn thành hoặc tất cả bookings)
-    let roomPerfQuery = supabase.from('bookings').select('rooms(name)').gte('booking_date', start).lte('booking_date', end).neq('status', 'cancelled');
-    const { data: roomBookings } = await roomPerfQuery;
-    const roomCounts = {};
-    if (roomBookings) {
-      roomBookings.forEach(b => {
-        const rName = b.rooms?.name || 'Khác';
-        roomCounts[rName] = (roomCounts[rName] || 0) + 1;
-      });
-    }
-    // Lấy top 5 phòng
-    const topRooms = Object.entries(roomCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
-
-    // Menu Performance (Lấy từ invoice_items loại food - do hiện tại chưa làm menu checkout nên nó sẽ rỗng)
-    // Để biểu đồ không vỡ, ta query
-    let menuPerfQuery = supabase.from('invoice_items').select('description, quantity').eq('item_type', 'food').gte('created_at', start + 'T00:00:00Z').lte('created_at', end + 'T23:59:59Z');
-    const { data: menuItems } = await menuPerfQuery;
-    const menuCounts = {};
-    if (menuItems) {
-      menuItems.forEach(item => {
-        menuCounts[item.description] = (menuCounts[item.description] || 0) + item.quantity;
-      });
-    }
-    const topMenu = Object.entries(menuCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
+    // Format Room Performance
+    const roomPerformance = Object.entries(roomPerf)
+      .map(([name, stats]) => ({ name, ...stats }))
+      .sort((a,b) => b.revenue - a.revenue);
 
     const data = {
       overview: {
-        totalRevenue: totalRevenue || 0,
-        totalBookings: totalBookings || 0,
-        totalReviews: totalReviews || 0,
-        avgRating: avgRating || 0
+        totalRevenue,
+        totalBookings,
+        avgRevPerBooking,
+        roomRevenue,
+        foodRevenue,
+        surcharge,
+        discount
       },
       revenueLine: {
         labels: revLabels,
         data: revData
       },
-      roomsPerformance: {
-        labels: topRooms.length ? topRooms.map(r => r[0]) : ['Chưa có dữ liệu'],
-        data: topRooms.length ? topRooms.map(r => r[1]) : [1]
-      },
-      menuPerformance: {
-        labels: topMenu.length ? topMenu.map(m => m[0]) : ['Chưa có dữ liệu (Chưa kết nối POS)'],
-        data: topMenu.length ? topMenu.map(m => m[1]) : [1]
-      }
+      roomsPerformance: roomPerformance,
+      menuPerformance: topMenu
     };
 
     res.json(data);

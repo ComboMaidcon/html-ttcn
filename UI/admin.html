@@ -58,33 +58,122 @@
         
         <!-- ================= REPORTS TAB ================= -->
         <div class="admin-tab-content" id="tab-reports">
-          <div class="tab-header" style="flex-wrap:wrap;gap:1rem;">
-            <h2>Báo cáo & Thống kê</h2>
-            <div style="display:flex;gap:.5rem;align-items:center;">
-              <input type="date" id="repStart" class="an-btn" style="padding:.4rem">
-              <span style="color:var(--muted)">-</span>
-              <input type="date" id="repEnd" class="an-btn" style="padding:.4rem">
-              <button class="btn-add" onclick="renderReportsTab()">Lọc & Làm mới</button>
+          <div class="tab-header" style="flex-direction: column; align-items: flex-start; gap: 1rem;">
+            <h2>Báo cáo Tùy biến</h2>
+            
+            <div class="reports-filter-grid">
+              <!-- Nhóm 1: Thời gian -->
+              <div class="filter-group">
+                <label>Thời gian</label>
+                <div style="display:flex; gap:.5rem">
+                  <input type="date" id="repStart" class="fg-input">
+                  <span style="color:var(--muted); align-self:center">-</span>
+                  <input type="date" id="repEnd" class="fg-input">
+                </div>
+              </div>
+
+              <!-- Nhóm 2: Lọc chung -->
+              <div class="filter-group">
+                <label>Khung giờ & Các ngày trong tuần</label>
+                <div style="display:flex; gap:.5rem; align-items:center">
+                  <select id="repTime" class="fg-input" style="width: auto;">
+                    <option value="all">Tất cả ca</option>
+                    <option value="morning">Sáng (06h-17h)</option>
+                    <option value="evening">Tối (17h-22h)</option>
+                    <option value="night">Đêm (22h-06h)</option>
+                  </select>
+                  <div class="custom-select" id="daySelectWrap">
+                    <div class="select-box fg-input" onclick="toggleDayDropdown()" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; width: 140px; user-select:none;">
+                       <span id="daySelectText">7 ngày</span>
+                       <span style="font-size: 0.6rem; color:var(--muted)">▼</span>
+                    </div>
+                    <div class="select-dropdown" id="dayDropdown" style="display:none;">
+                      <div class="day-checkboxes" id="repDaysContainer" style="display:flex; flex-direction:column; gap:0.4rem;">
+                        <label class="day-cb-list"><input type="checkbox" value="1" checked onchange="updateDaySelectText()"> <span class="cb-mark"></span> T2</label>
+                        <label class="day-cb-list"><input type="checkbox" value="2" checked onchange="updateDaySelectText()"> <span class="cb-mark"></span> T3</label>
+                        <label class="day-cb-list"><input type="checkbox" value="3" checked onchange="updateDaySelectText()"> <span class="cb-mark"></span> T4</label>
+                        <label class="day-cb-list"><input type="checkbox" value="4" checked onchange="updateDaySelectText()"> <span class="cb-mark"></span> T5</label>
+                        <label class="day-cb-list"><input type="checkbox" value="5" checked onchange="updateDaySelectText()"> <span class="cb-mark"></span> T6</label>
+                        <label class="day-cb-list"><input type="checkbox" value="6" checked onchange="updateDaySelectText()"> <span class="cb-mark"></span> T7</label>
+                        <label class="day-cb-list"><input type="checkbox" value="0" checked onchange="updateDaySelectText()"> <span class="cb-mark"></span> Chủ Nhật</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Nhóm 3: Nguồn khách -->
+              <div class="filter-group">
+                <label>Nguồn khách</label>
+                <select id="repChannel" class="fg-input">
+                  <option value="all">Tất cả kênh</option>
+                  <option value="website">Khách đặt trước (Website)</option>
+                  <option value="walk-in">Khách đặt trực tiếp</option>
+                </select>
+              </div>
+
+              <!-- Nhóm 4: Phòng -->
+              <div class="filter-group">
+                <label>Lọc theo Phòng</label>
+                <select id="repRoom" class="fg-input">
+                  <option value="all">Tất cả Phòng</option>
+                </select>
+              </div>
+
+              <!-- Nhóm 5: Dịch vụ -->
+              <div class="filter-group">
+                <label>Lọc theo Dịch vụ</label>
+                <select id="repMenu" class="fg-input">
+                  <option value="all">Tất cả Món</option>
+                </select>
+              </div>
+
+              <!-- Nút hành động -->
+              <div style="display:flex; gap:0.5rem; align-items:flex-end; flex: 1; min-width: 200px;">
+                <button class="btn-add" onclick="renderReportsTab()" style="flex:1;">Lọc</button>
+                <button class="an-btn" onclick="exportReportData()" title="Xuất CSV" style="padding: 0.75rem 1rem;">Xuất</button>
+              </div>
             </div>
           </div>
           
-          <div class="stats-bar" id="reportStats">
+          <div class="stats-bar" id="reportStats" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
             <!-- Stats will be injected here -->
           </div>
 
-          <div class="charts-grid">
-            <div class="chart-card">
-              <div class="chart-title">Doanh thu 6 tháng gần nhất</div>
-              <canvas id="revenueChart"></canvas>
-            </div>
-            <div class="chart-card">
-              <div class="chart-title">Số lượt gọi Món ăn/Đồ uống (Top 5)</div>
-              <canvas id="menuChart"></canvas>
-            </div>
-            <div class="chart-card">
-              <div class="chart-title">Tần suất đặt Phòng (Top 5)</div>
-              <canvas id="roomsChart"></canvas>
-            </div>
+          <!-- Revenue Breakdown & Line Chart -->
+          <div style="display:grid; grid-template-columns: 1fr 2fr; gap: 1.5rem; margin-bottom: 2rem;">
+             <div class="chart-card" style="margin: 0;">
+                <div class="chart-title">Mổ xẻ Doanh thu</div>
+                <div id="revenueBreakdown" style="display:flex; flex-direction:column; gap: 1rem;">
+                    <!-- Injected by JS -->
+                </div>
+             </div>
+             <div class="chart-card" style="margin: 0;">
+                <div class="chart-title">Xu hướng dòng tiền</div>
+                <canvas id="revenueChart"></canvas>
+             </div>
+          </div>
+
+          <!-- Pure Data Tables -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+             <div class="chart-card" style="margin: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                <div class="chart-title" style="padding: 1.5rem 1.5rem 0.5rem; margin: 0;">Hiệu suất Phòng (Top 10)</div>
+                <div class="table-wrap" style="margin: 0; border: none; border-radius: 0; padding: 0; flex: 1; overflow-y: auto;">
+                    <table class="admin-table report-table">
+                       <thead><tr><th>Phòng</th><th>Lượt Đặt</th><th>Doanh Thu</th></tr></thead>
+                       <tbody id="roomPerfTable"></tbody>
+                    </table>
+                </div>
+             </div>
+             <div class="chart-card" style="margin: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                <div class="chart-title" style="padding: 1.5rem 1.5rem 0.5rem; margin: 0;">Tiêu thụ Dịch vụ (Top 10)</div>
+                <div class="table-wrap" style="margin: 0; border: none; border-radius: 0; padding: 0; flex: 1; overflow-y: auto;">
+                    <table class="admin-table report-table">
+                       <thead><tr><th>Tên Món</th><th>SL Bán</th><th>Doanh Thu</th></tr></thead>
+                       <tbody id="menuPerfTable"></tbody>
+                    </table>
+                </div>
+             </div>
           </div>
         </div>
 
