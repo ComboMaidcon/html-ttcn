@@ -58,6 +58,10 @@ async function apiUpdateBookingStatus(id, status) {
   return apiFetch(`/api/bookings/${id}/status`, { method: 'PATCH', body: { status } });
 }
 
+async function apiUpdateBooking(id, changes) {
+  return apiFetch(`/api/bookings/${id}`, { method: 'PATCH', body: changes });
+}
+
 /* ════════════════════════════════
    ROOMS
    ════════════════════════════════ */

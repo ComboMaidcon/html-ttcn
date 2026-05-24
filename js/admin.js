@@ -1194,6 +1194,38 @@ async function posConfirmCheckout() {
   } catch(e) { showToast(e.message, true); }
 }
 
+async function posAdjustHours(delta) {
+  if (!posState.activeBooking) return;
+  const b = posState.activeBooking;
+  
+  const endParts = b.end_time.split(':');
+  let currentEnd = parseInt(endParts[0]) + parseInt(endParts[1])/60;
+  
+  const startParts = b.start_time.split(':');
+  let startHour = parseInt(startParts[0]) + parseInt(startParts[1])/60;
+  
+  if (b.is_overnight || currentEnd < startHour) currentEnd += 24;
+  
+  let newEnd = currentEnd + delta;
+  if (newEnd <= startHour) {
+    showToast('Thời gian kết thúc không thể nhỏ hơn thời gian bắt đầu!', true);
+    return;
+  }
+  
+  try {
+    const res = await apiUpdateBooking(b.id, { endHour: newEnd });
+    posState.activeBooking = res.booking;
+    
+    const idx = posState.activeBookings.findIndex(x => x.id === b.id);
+    if (idx !== -1) posState.activeBookings[idx] = res.booking;
+    
+    renderPosOrder();
+    showToast(`Đã điều chỉnh ${delta > 0 ? '+' : ''}${delta}h thành công!`);
+  } catch (err) {
+    showToast(err.message || 'Lỗi khi cập nhật giờ', true);
+  }
+}
+
 async function posPushOrder() {
   if (posState.cart.length === 0) {
     showToast('Chưa có món nào để đẩy xuống bếp!', true);

@@ -390,6 +390,7 @@
   display: flex;
   flex-direction: column;
   background: var(--dark);
+  overflow-y: auto;
 }
 
 .pos-right-header {
@@ -424,9 +425,8 @@
 }
 
 .pos-order-list {
-  flex: 1;
-  overflow-y: auto;
   padding: 15px;
+  min-height: 150px;
 }
 
 .pos-empty-cart {
