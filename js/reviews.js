@@ -1,233 +1,298 @@
-/* ── Reviews page logic ── */
+/* ══════════════════════════════════════════════
+   NOX Joy Station — reviews.js v2
+   Khớp với reviews.html v2 (IDs mới)
+   ══════════════════════════════════════════════ */
 
-injectShared({ ticker: false });
-initPage();
-buildStarPicker();
+document.addEventListener('DOMContentLoaded', () => {
+  injectShared({ ticker: false });
+  initPage();
+  buildStarPicker();
+  loadReviews(true);
+  bindFilters();
+});
 
-/* ── Init ── */
-let currentPage  = 1;
+/* ── State ──────────────────────────────────── */
 let selectedStar = 0;
-let activeFilter = '';
-const PER_PAGE   = 6;
-const STAR_HINTS = ['','Tệ','Không ổn','Bình thường','Tốt','Tuyệt vời! 🎉'];
+let activeFilter = 'all';
+let currentPage  = 1;
+let totalPages   = 1;
+const PER_PAGE   = 8;
 
-// Load reviews from API / localStorage
-async function loadAndRender() {
-  const sortVal = document.getElementById('sortSel').value;
-  const filterF = activeFilter;
+const STAR_HINTS  = ['','Tệ lắm','Không ổn','Bình thường','Tốt lắm','Tuyệt vời'];
+const TYPE_LABELS = { couple:'Cap doi', group:'Nhom ban', party:'Sinh nhat', solo:'Solo', work:'Dong nghiep' };
 
-  let data;
-  try {
-    const opts = { page: currentPage };
-    if (filterF === '5' || filterF === '4') opts.minRating = parseInt(filterF);
-    else if (filterF)                        opts.visitType = filterF;
-    data = await apiGetReviews(opts);
-  } catch (err) {
-    console.error('Reviews fetch error:', err);
-    data = { reviews: [], stats: { avg: 0, dist: [], total: 0 }, total: 0 };
+/* ── Load & render reviews ───────────────────── */
+async function loadReviews(reset = false) {
+  if (reset) { currentPage = 1; }
+
+  const list = document.getElementById('reviewList');
+  const btn  = document.getElementById('loadMoreBtn');
+
+  // Skeleton on reset
+  if (reset) {
+    list.innerHTML = [1,2,3].map(() => `
+      <div class="rv-card" style="padding:2rem">
+        <div class="skeleton" style="height:12px;width:40%;margin-bottom:1rem"></div>
+        <div class="skeleton" style="height:10px;width:100%;margin-bottom:.5rem"></div>
+        <div class="skeleton" style="height:10px;width:75%"></div>
+      </div>`).join('');
   }
 
-  let reviews = data.reviews || [];
+  try {
+    const opts = { page: currentPage, limit: PER_PAGE };
+    if (activeFilter === '5' || activeFilter === '4') opts.minRating = parseInt(activeFilter);
+    else if (activeFilter !== 'all') opts.visitType = activeFilter;
 
-  // Sort client-side (API returns newest by default)
-  if (sortVal === 'highest') reviews = [...reviews].sort((a,b) => b.rating - a.rating);
-  if (sortVal === 'lowest')  reviews = [...reviews].sort((a,b) => a.rating - b.rating);
+    const data = await apiGetReviews(opts);
+    const reviews = data.reviews || [];
+    const total   = data.total   || 0;
+    totalPages = Math.ceil(total / PER_PAGE);
 
-  renderStats(data.stats);
-  renderReviewCards(reviews, data.total);
+    // Stats
+    renderStats(data.stats);
+
+    // Cards
+    if (reset) list.innerHTML = '';
+    if (!reviews.length && reset) {
+      list.innerHTML = `
+        <div style="text-align:center;padding:4rem 1rem;color:var(--muted)">
+          <div style="font-family:var(--font-display);font-size:2rem;margin-bottom:.5rem">Chua co danh gia</div>
+          <p>Hay la nguoi dau tien viet danh gia!</p>
+        </div>`;
+      btn.style.display = 'none';
+      return;
+    }
+
+    reviews.forEach(r => {
+      const card = buildReviewCard(r);
+      list.insertAdjacentHTML('beforeend', card);
+    });
+
+    // Trigger reveal animation on new cards
+    list.querySelectorAll('.rv-card:not(.on)').forEach(el => {
+      setTimeout(() => el.classList.add('on'), 50);
+    });
+
+    // Load more button
+    btn.style.display = currentPage < totalPages ? 'inline-flex' : 'none';
+
+  } catch (err) {
+    console.error('Reviews load error:', err);
+    if (reset) {
+      list.innerHTML = `
+        <div style="text-align:center;padding:3rem;color:var(--muted)">
+          <p>Khong the tai danh gia. Vui long thu lai.</p>
+        </div>`;
+    }
+    btn.style.display = 'none';
+  }
 }
 
-/* ── Stats panel ── */
+/* ── Load more ───────────────────────────────── */
+function loadMoreReviews() {
+  currentPage++;
+  loadReviews(false);
+}
+
+/* ── Stats panel ─────────────────────────────── */
 function renderStats(stats) {
-  const bigEl = document.getElementById('statsBig');
-  const barEl = document.getElementById('barList');
+  const scoreEl = document.getElementById('statsScore');
+  const starsEl = document.getElementById('statsStars');
+  const totalEl = document.getElementById('statsTotal');
+
+  if (!scoreEl) return;
 
   if (!stats || stats.total === 0) {
-    bigEl.innerHTML = `
-      <div style="text-align:center;padding:1rem 0">
-        <div style="font-size:2.5rem;margin-bottom:.5rem">⭐</div>
-        <div style="font-weight:600;color:var(--white);margin-bottom:.3rem">Chưa có đánh giá nào</div>
-        <div style="font-size:.85rem;color:var(--muted)">Hãy là người đầu tiên chia sẻ trải nghiệm!</div>
-      </div>`;
-    barEl.innerHTML = '';
+    scoreEl.textContent = '—';
+    totalEl.textContent = 'Chưa có đánh giá';
+    if (starsEl) starsEl.innerHTML = [1,2,3,4,5].map(() =>
+      `<span class="sp-star-disp">&#9733;</span>`).join('');
     return;
   }
 
-  bigEl.innerHTML = `
-    <div class="stats-score">${stats.avg}</div>
-    <div class="stats-stars">${starsHTML(Math.round(parseFloat(stats.avg)))}</div>
-    <div class="stats-count">${stats.total} đánh giá</div>`;
+  const avg   = parseFloat(stats.avg || 0);
+  const total = stats.total || 0;
+  const dist  = stats.distribution || stats.dist || [];
 
-  const dist = stats.dist || [];
-  barEl.innerHTML = [...dist].reverse().map(d => `
-    <div class="bar-row">
-      <span class="bar-lbl">${d.star}</span>
-      <span class="bar-star">★</span>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${stats.total ? Math.round(d.count/stats.total*100) : 0}%"></div>
-      </div>
-      <span class="bar-num">${d.count}</span>
-    </div>`).join('');
+  // Score + stars
+  scoreEl.textContent = avg.toFixed(1);
+  totalEl.textContent = `${total} đánh giá`;
+
+  const rounded = Math.round(avg);
+  if (starsEl) starsEl.innerHTML = [1,2,3,4,5].map(i =>
+    `<span class="sp-star-disp${i <= rounded ? ' on' : ''}">&#9733;</span>`
+  ).join('');
+
+  // Rating bars — cập nhật từng bar đã có sẵn trong HTML
+  [5,4,3,2,1].forEach(star => {
+    const d   = dist.find(x => x.star === star) || { count: 0 };
+    const pct = total ? Math.round((d.count / total) * 100) : 0;
+    const bar = document.getElementById(`bar${star}`);
+    const pctEl = document.getElementById(`pct${star}`);
+    if (bar)   { bar.style.width = pct + '%'; }
+    if (pctEl) { pctEl.textContent = pct + '%'; }
+  });
 }
 
-/* ── Review cards ── */
-function renderReviewCards(reviews, total) {
-  const countLbl = document.getElementById('rvCountLbl');
-  const grid     = document.getElementById('rvGrid');
-  const pg       = document.getElementById('pagination');
+/* ── Build review card ───────────────────────── */
+function buildReviewCard(r) {
+  const name     = escHtml(r.name || r.customer?.name || 'An danh');
+  const initials = name.trim()[0]?.toUpperCase() || 'A';
+  const content  = escHtml(r.content || '');
+  const dateStr  = relativeDate(r.created_at);
+  const typeTag  = r.visit_type ? `<span class="badge badge-dark">${TYPE_LABELS[r.visit_type] || r.visit_type}</span>` : '';
+  const srcTag   = r.source     ? `<span class="badge badge-dark">${escHtml(r.source)}</span>` : '';
 
-  countLbl.textContent = total ? `${total} đánh giá` : '';
-
-  if (!reviews.length) {
-    grid.innerHTML = `<div class="rv-empty"><span class="ei">🔍</span>Chưa có đánh giá nào phù hợp.</div>`;
-    pg.innerHTML   = '';
-    return;
-  }
-
-  grid.innerHTML = reviews.map((r, i) => reviewCard(r, i === 0 && currentPage === 1)).join('');
-  document.querySelectorAll('#rvGrid .rv-card').forEach(el => el.classList.add('on'));
-
-  // Pagination
-  const totalPages = Math.ceil(total / PER_PAGE);
-  if (totalPages <= 1) { pg.innerHTML = ''; return; }
-  let pgHTML = '';
-  if (currentPage > 1)     pgHTML += `<button class="pg-btn" onclick="goPage(${currentPage-1})">‹</button>`;
-  for (let i=1; i<=totalPages; i++)
-    pgHTML += `<button class="pg-btn${i===currentPage?' active':''}" onclick="goPage(${i})">${i}</button>`;
-  if (currentPage < totalPages) pgHTML += `<button class="pg-btn" onclick="goPage(${currentPage+1})">›</button>`;
-  pg.innerHTML = pgHTML;
-}
-
-function reviewCard(r, isNew = false) {
-  // Support both API shape (visit_type, room_name) and localStorage shape (type, room)
-  const dateStr   = relativeDate(r.created_at || r.date);
-  const stars     = starsHTML(r.rating);
-  const typeKey   = r.visit_type || r.type || '';
-  const roomName  = r.room_name  || r.room || '';
-  const typeBadge = { couple:'💑 Couple', group:'👫 Nhóm bạn', party:'🎉 Party', solo:'🎮 Solo', work:'💼 Team' }[typeKey] || '';
-  const srcLabel  = r.source ? `· Biết qua ${r.source}` : '';
-  const initials  = r.initial || r.init || (r.name||'?')[0].toUpperCase();
+  // Màu avatar theo rating
+  const avatarColors = ['','#f87171','#fb923c','var(--gold)','#4ade80','var(--cyan)'];
+  const avatarColor  = avatarColors[r.rating] || 'var(--gold)';
 
   return `
-  <div class="rv-card${isNew ? ' new-review' : ''}">
-    <div class="rv-head">
-      <div style="display:flex;gap:.8rem;align-items:flex-start">
-        <div class="rv-avatar">${initials}</div>
-        <div class="rv-info">
-          <div class="rv-name">${escHtml(r.name)}</div>
-          <div class="rv-sub">${typeBadge} ${srcLabel}</div>
+    <div class="rv-card" style="opacity:0;transform:translateY(12px);transition:all .4s ease">
+      <div class="rv-top">
+        <div class="rv-meta">
+          <div class="rv-name" style="display:flex;align-items:center;gap:.7rem">
+            <div style="width:32px;height:32px;background:${avatarColor};display:flex;align-items:center;justify-content:center;font-family:var(--font-condensed);font-weight:700;font-size:.85rem;color:var(--black);flex-shrink:0">${initials}</div>
+            <span>${name}</span>
+          </div>
+          <div class="rv-date">${dateStr}</div>
         </div>
+        <div class="rv-stars">${renderStars(r.rating)}</div>
       </div>
-      <div class="rv-meta">
-        <div class="rv-stars">${stars}</div>
-        <div class="rv-date">${dateStr}</div>
-      </div>
-    </div>
-    ${roomName ? `<div class="rv-room">📍 ${escHtml(roomName)}</div>` : ''}
-    <div class="rv-text">${escHtml(r.content || r.text || '')}</div>
-  </div>`;
+      <p class="rv-content">${content}</p>
+      ${(typeTag || srcTag) ? `<div class="rv-tags" style="margin-top:.8rem;display:flex;gap:.4rem;flex-wrap:wrap">${typeTag}${srcTag}</div>` : ''}
+    </div>`;
 }
 
-/* ── Submit ── */
+/* ── Submit review ───────────────────────────── */
 async function submitReview() {
   const name      = document.getElementById('fName').value.trim();
-  const content   = document.getElementById('fText').value.trim();
-  const roomName  = document.getElementById('fRoom').value;
-  const visitType = document.getElementById('fType').value;
+  const content   = document.getElementById('fContent').value.trim();
+  const roomId    = document.getElementById('fRoom').value;
+  const visitType = document.getElementById('fVisit').value;
   const source    = document.getElementById('fSource').value;
+  const alertEl   = document.getElementById('reviewAlert');
+  const btn       = document.getElementById('submitReviewBtn');
 
-  if (!name)           { alert('Vui lòng nhập tên.'); return; }
-  if (!selectedStar)   { alert('Vui lòng chọn số sao.'); return; }
-  if (content.length < 20) { alert('Nội dung tối thiểu 20 ký tự.'); return; }
+  // Validate
+  if (!name) {
+    showAlert(alertEl, 'error', 'Vui long nhap ten cua ban');
+    return;
+  }
+  if (!selectedStar) {
+    showAlert(alertEl, 'error', 'Vui long chon so sao');
+    return;
+  }
+  if (content.length < 10) {
+    showAlert(alertEl, 'error', 'Noi dung danh gia toi thieu 10 ky tu');
+    return;
+  }
 
-  const btn = document.getElementById('btnSubmit');
-  btn.disabled = true; btn.textContent = 'Đang gửi...';
+  btn.disabled    = true;
+  btn.textContent = 'Dang gui...';
 
   try {
-    await apiCreateReview({ name, rating: selectedStar, content, roomName, visitType, source });
+    await apiCreateReview({
+      rating:    selectedStar,
+      content,
+      roomId:    roomId    || null,
+      visitType: visitType || null,
+      source:    source    || null,
+    });
 
     // Reset form
-    document.getElementById('fName').value  = '';
-    document.getElementById('fText').value  = '';
-    document.getElementById('fRoom').value  = '';
-    document.getElementById('fSource').value = '';
+    document.getElementById('fName').value    = '';
+    document.getElementById('fContent').value = '';
+    document.getElementById('fRoom').value    = '';
+    document.getElementById('fVisit').value   = '';
+    document.getElementById('fSource').value  = '';
     selectedStar = 0;
     highlightStars(0);
-    document.getElementById('starHint').textContent = 'Chọn số sao';
+    document.getElementById('starHint').textContent = 'Chon so sao';
 
-    const suc = document.getElementById('submitSuccess');
-    suc.style.display = 'flex';
-    setTimeout(() => suc.style.display = 'none', 4000);
+    showAlert(alertEl, 'success', 'Cam on ban! Danh gia se duoc hien thi sau khi duyet.');
 
-    currentPage = 1;
-    await loadAndRender();
+    // Reload list
+    setTimeout(() => {
+      activeFilter = 'all';
+      document.querySelectorAll('.rv-filter-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.filter === 'all'));
+      loadReviews(true);
+    }, 1200);
+
   } catch (err) {
-    alert(err.message || 'Gửi thất bại, thử lại!');
+    showAlert(alertEl, 'error', err.message || 'Gui that bai, vui long thu lai!');
   } finally {
-    btn.disabled = false; btn.textContent = 'Gửi đánh giá →';
+    btn.disabled    = false;
+    btn.textContent = 'Gui danh gia';
   }
 }
 
-/* ── Filter / sort / pagination ── */
-document.getElementById('filterBar').addEventListener('click', e => {
-  const btn = e.target.closest('.filter-btn'); if (!btn) return;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  activeFilter = btn.dataset.f;
-  currentPage  = 1;
-  loadAndRender();
-});
-
-document.getElementById('sortSel').addEventListener('change', () => {
-  currentPage = 1; loadAndRender();
-});
-
-function goPage(n) {
-  currentPage = n;
-  loadAndRender();
-  document.getElementById('rvGrid').scrollIntoView({ behavior:'smooth', block:'start' });
+/* ── Filters ─────────────────────────────────── */
+function bindFilters() {
+  const container = document.getElementById('rvFilters');
+  if (!container) return;
+  container.addEventListener('click', e => {
+    const btn = e.target.closest('.rv-filter-btn');
+    if (!btn) return;
+    container.querySelectorAll('.rv-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter || 'all';
+    loadReviews(true);
+  });
 }
 
-/* ── Star picker ── */
+/* ── Star picker ─────────────────────────────── */
 function buildStarPicker() {
-  document.querySelectorAll('.sp-star').forEach(s => {
+  const picker = document.getElementById('starPicker');
+  if (!picker) return;
+  picker.querySelectorAll('.sp-star').forEach(s => {
     s.addEventListener('mouseenter', () => highlightStars(+s.dataset.v));
     s.addEventListener('mouseleave', () => highlightStars(selectedStar));
     s.addEventListener('click', () => {
       selectedStar = +s.dataset.v;
       highlightStars(selectedStar);
-      document.getElementById('starHint').textContent = STAR_HINTS[selectedStar];
+      const hint = document.getElementById('starHint');
+      if (hint) hint.textContent = STAR_HINTS[selectedStar];
     });
   });
 }
 
 function highlightStars(n) {
-  document.querySelectorAll('.sp-star').forEach(s =>
-    s.classList.toggle('active', +s.dataset.v <= n));
+  document.querySelectorAll('#starPicker .sp-star').forEach(s =>
+    s.classList.toggle('on', +s.dataset.v <= n));
 }
 
-/* ── Helpers ── */
-function starsHTML(n) {
-  return '★'.repeat(Math.max(0,n)) + '☆'.repeat(Math.max(0,5-n));
+/* ── Helpers ─────────────────────────────────── */
+function renderStars(n) {
+  return Array.from({length:5}, (_,i) =>
+    `<span class="rv-star${i < n ? ' on' : ''}">&#9733;</span>`
+  ).join('');
 }
+
 function relativeDate(iso) {
   if (!iso) return '';
   const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff/60000);
-  if (m < 1)  return 'Vừa xong';
-  if (m < 60) return `${m} phút trước`;
-  const h = Math.floor(m/60);
-  if (h < 24) return `${h} giờ trước`;
-  const d = Math.floor(h/24);
-  if (d < 7)  return `${d} ngày trước`;
+  const m = Math.floor(diff / 60000);
+  if (m < 2)  return 'Vua xong';
+  if (m < 60) return `${m} phut truoc`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} gio truoc`;
+  const d = Math.floor(h / 24);
+  if (d < 7)  return `${d} ngay truoc`;
+  if (d < 30) return `${Math.floor(d/7)} tuan truoc`;
   return new Date(iso).toLocaleDateString('vi-VN');
 }
+
 function escHtml(s) {
-  return String(s)
+  return String(s || '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function genId() { return Math.random().toString(36).slice(2,10); }
 
-/* ── Initial load ── */
-loadAndRender();
+function showAlert(el, type, msg) {
+  if (!el) return;
+  el.textContent = msg;
+  el.className   = `form-alert visible ${type}`;
+  setTimeout(() => el.classList.remove('visible'), 5000);
+}

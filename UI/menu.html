@@ -1,69 +1,68 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Menu – NOX Joy Station</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css">
-  <link rel="stylesheet" href="../css/menu.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Menu — NOX Joy Station</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/menu.css">
 </head>
 <body>
 
-  <div class="page-hero">
-    <div class="page-hero-bg"></div>
-    <div class="page-hero-grid"></div>
-    <div class="page-hero-content">
-      <div class="page-hero-label">Thực đơn</div>
-      <h1>Menu <span>NOX</span></h1>
-      <p>Order tận phòng — ăn trong khi chơi, không cần bước ra ngoài.</p>
+<div class="page-hero">
+  <div class="page-hero-bg"></div>
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-content">
+    <div class="label-tag">Thực đơn</div>
+    <h1>Menu <span>NOX</span></h1>
+    <p>Order tận phòng — ăn trong khi chơi, không cần bước ra ngoài.</p>
+  </div>
+</div>
+
+<section class="section band-gradient-purple">
+  <div class="section-inner">
+
+    <div class="menu-note rev">
+      <span style="font-family:var(--font-condensed);font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold)">GD</span>
+      <span><strong>Phục vụ tận phòng miễn phí</strong> — order qua nhân viên hoặc quét QR trong phòng. Chuẩn bị 10–15 phút.</span>
+    </div>
+
+    <div class="menu-tabs" id="menuTabs">
+      <button class="menu-tab active" data-tab="drink">Do uong</button>
+      <button class="menu-tab" data-tab="food">Do an</button>
+    </div>
+
+    <div class="menu-toolbar rev">
+      <input class="menu-search" id="menuSearch" type="search" placeholder="Tim ten mon..." autocomplete="off">
+      <select class="menu-sort" id="menuSort">
+        <option value="default">Mac dinh</option>
+        <option value="price-asc">Gia tang dan</option>
+        <option value="price-desc">Gia giam dan</option>
+        <option value="name-asc">Ten A-Z</option>
+      </select>
+      <span class="menu-result-count" id="resultCount"></span>
+    </div>
+
+    <div class="menu-section active" id="tab-drink">
+      <div id="drink-content"></div>
+    </div>
+    <div class="menu-section" id="tab-food">
+      <div id="food-content"></div>
+    </div>
+
+    <div class="admin-hint">
+      <a href="admin.html">Quan ly menu</a>
     </div>
   </div>
+</section>
 
-  <section class="section">
-    <div class="section-inner">
-
-      <div class="menu-note rev">
-        🛵 <span><strong>Phục vụ tận phòng miễn phí</strong>
-        — order qua nhân viên hoặc quét QR trong phòng. Chuẩn bị 10–15 phút.</span>
-      </div>
-
-      <div class="menu-tabs" id="menuTabs">
-        <button class="menu-tab active" data-tab="drink">🧃 Đồ uống</button>
-        <button class="menu-tab"        data-tab="food" >🍕 Đồ ăn</button>
-      </div>
-
-      <div class="menu-toolbar rev">
-        <input  class="menu-search" id="menuSearch" type="search"
-                placeholder="🔍 Tìm tên món..." autocomplete="off">
-        <select class="menu-sort"   id="menuSort">
-          <option value="default"   >Mặc định</option>
-          <option value="price-asc" >Giá tăng dần</option>
-          <option value="price-desc">Giá giảm dần</option>
-          <option value="name-asc"  >Tên A → Z</option>
-        </select>
-        <span class="menu-result-count" id="resultCount"></span>
-      </div>
-
-      <div class="menu-section active" id="tab-drink">
-        <div id="drink-content"></div>
-      </div>
-      <div class="menu-section" id="tab-food">
-        <div id="food-content"></div>
-      </div>
-
-      <div class="admin-hint">
-        <a href="admin.html">⚙ Quản lý menu</a>
-      </div>
-    </div>
-  </section>
-
-  <script src="../js/utils.js"      defer></script>
-  <script src="../js/init.js"       defer></script>
-  <script src="../js/components.js" defer></script>
-  <script src="../js/menu-data.js"  defer></script>
-  <script src="../js/menu.js"       defer></script>
+<script src="../js/utils.js" defer></script>
+<script src="../js/init.js" defer></script>
+<script src="../js/components.js" defer></script>
+<script src="../js/menu-data.js" defer></script>
+<script src="../js/menu.js" defer></script>
 </body>
 </html>

@@ -20,7 +20,6 @@ function requireAdmin(req, res, next) {
   });
 }
 
-// Giữ từ files.zip — linh hoạt hơn khi cần phân quyền cụ thể
 function requireRole(...roles) {
   return (req, res, next) => {
     requireAuth(req, res, () => {

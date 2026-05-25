@@ -267,7 +267,7 @@ function renderRoomCard(room, date) {
       <p class="room-desc">${room.desc}</p>
       <div class="room-tags">${tags}</div>
       <div class="room-footer2">
-        <div class="room-price">${room.price}K <sub>/ giờ (từ)</sub></div>
+        <div class="room-price">${room.price}K <sub>/ giờ </sub></div>
         <button class="btn-sm" onclick="goBook('${room.id}')">Đặt ngay →</button>
       </div>
     </div>
@@ -408,7 +408,7 @@ async function openRoomModal(roomId) {
     </div>`;
 
   document.getElementById('rmPrice').innerHTML =
-    `${room.price}K <sub>/ giờ (từ)</sub>`;
+    `${room.price}K <sub>/ giờ </sub>`;
   document.getElementById('rmBookBtn').onclick = () => {
     closeRoomModal();
     location.href = `booking.html?room=${roomId}`;

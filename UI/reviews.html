@@ -1,175 +1,180 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Đánh giá – NOX Joy Station</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css">
-  <link rel="stylesheet" href="../css/reviews.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đánh giá — NOX Joy Station</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/styles.css">
+<link rel="stylesheet" href="../css/reviews.css">
 </head>
 <body>
 
-  <div class="page-hero">
-    <div class="page-hero-bg"></div>
-    <div class="page-hero-grid"></div>
-    <div class="page-hero-content">
-      <div class="page-hero-label">Đánh giá</div>
-      <h1>Khách hàng <span>nói gì?</span></h1>
-      <p>Mọi đánh giá đều từ khách hàng thực tế — không có nội dung được dàn dựng.</p>
-    </div>
+<div class="page-hero">
+  <div class="page-hero-bg"></div>
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-content">
+    <div class="label-tag">Đánh giá</div>
+    <h1>Khách hàng <span>nói gì</span></h1>
+    <p>Mọi đánh giá đều từ khách hàng thực tế — không có nội dung dàn dựng.</p>
   </div>
+</div>
 
-  <section class="section">
-    <div class="section-inner">
-      <div class="rv-layout">
+<section class="section band-gradient-purple">
+  <div class="section-inner">
+    <div class="rv-layout">
 
-        <!-- Stats panel -->
-        <div class="stats-panel rev" id="statsPanel">
-          <div class="stats-big" id="statsBig"></div>
-          <div class="bar-list"  id="barList"></div>
-          <div class="plat-section">
-            <div class="plat-title">Tìm chúng tôi trên</div>
-            <div class="plat-row">
-              <span class="plat-icon">📘</span>
-              <span class="plat-name">Facebook</span>
-              <span class="plat-val">NOX Joy Station</span>
-            </div>
-            <div class="plat-row">
-              <span class="plat-icon">🎵</span>
-              <span class="plat-name">TikTok</span>
-              <span class="plat-val">@noxjoystation</span>
-            </div>
-            <div class="plat-row">
-              <span class="plat-icon">🗺️</span>
-              <span class="plat-name">Google Maps</span>
-              <span class="plat-val">NOX Joy Station HN</span>
-            </div>
+      <!-- Stats panel -->
+      <div class="stats-panel rev" id="statsPanel">
+        <div class="stats-big-inner" id="statsBig">
+          <!-- Hiển thị ngay, sẽ được cập nhật khi API trả về -->
+          <div class="stats-score" id="statsScore">—</div>
+          <div class="stats-stars" id="statsStars">
+            <span class="sp-star-disp">&#9733;</span>
+            <span class="sp-star-disp">&#9733;</span>
+            <span class="sp-star-disp">&#9733;</span>
+            <span class="sp-star-disp">&#9733;</span>
+            <span class="sp-star-disp">&#9733;</span>
           </div>
+          <div class="stats-total" id="statsTotal">Đang tải...</div>
         </div>
-
-        <!-- Right column -->
-        <div class="rv-right">
-
-          <!-- Write review form -->
-          <div class="form-card rev">
-            <div class="form-title">✍️ Viết đánh giá của bạn</div>
-
-            <div class="star-picker-wrap">
-              <div class="star-picker" id="starPicker">
-                <span class="sp-star" data-v="1">★</span>
-                <span class="sp-star" data-v="2">★</span>
-                <span class="sp-star" data-v="3">★</span>
-                <span class="sp-star" data-v="4">★</span>
-                <span class="sp-star" data-v="5">★</span>
-              </div>
-              <span class="star-hint" id="starHint">Chọn số sao</span>
-            </div>
-
-            <div class="form-grid">
-              <div class="fg2">
-                <label>Tên của bạn *</label>
-                <input id="fName" placeholder="Nguyễn Văn A" maxlength="40">
-              </div>
-              <div class="fg2">
-                <label>Loại phòng đã dùng</label>
-                <select id="fRoom">
-                  <option value="">-- Chọn loại phòng --</option>
-                  <optgroup label="Tầng 6">
-                    <option value="t6-room1">Room 1 – Small (T6)</option>
-                    <option value="t6-room2">Room 2 – Medium Deluxe (T6)</option>
-                    <option value="t6-room3">Room 3 – Small (T6)</option>
-                    <option value="t6-room4">Room 4 – Medium Classic (T6)</option>
-                    <option value="t6-big">Big Room (T6)</option>
-                  </optgroup>
-                  <optgroup label="Tầng 5">
-                    <option value="t5-room1">Room 1 – Medium Deluxe (T5)</option>
-                    <option value="t5-room2">Room 2 – Medium Classic (T5)</option>
-                    <option value="t5-room3">Room 3 – Small (T5)</option>
-                    <option value="t5-room4">Room 4 – Small (T5)</option>
-                    <option value="t5-big">Big Room (T5)</option>
-                  </optgroup>
-                  <optgroup label="Tầng 4 – Cine Box">
-                    <option value="cine-1">Cine 1 (T4)</option>
-                    <option value="cine-2">Cine 2 (T4)</option>
-                    <option value="cine-3">Cine 3 (T4)</option>
-                    <option value="suite-1">Suite 1 (T4)</option>
-                    <option value="suite-2">Suite 2 (T4)</option>
-                  </optgroup>
-                </select>
-              </div>
-              <div class="fg2 form-full">
-                <label>Nội dung đánh giá *</label>
-                <textarea id="fText"
-                  placeholder="Trải nghiệm của bạn tại NOX thế nào? (tối thiểu 20 ký tự)"
-                  maxlength="500"></textarea>
-              </div>
-              <div class="fg2">
-                <label>Dịp ghé thăm</label>
-                <select id="fType">
-                  <option value="couple">💑 Hẹn hò / Couple</option>
-                  <option value="group" >👫 Nhóm bạn</option>
-                  <option value="party" >🎉 Sinh nhật / Party</option>
-                  <option value="solo"  >🎮 Solo chill</option>
-                  <option value="work"  >💼 Team building</option>
-                </select>
-              </div>
-              <div class="fg2">
-                <label>Bạn biết NOX qua đâu?</label>
-                <select id="fSource">
-                  <option value="">-- Chọn --</option>
-                  <option>TikTok</option>
-                  <option>Facebook</option>
-                  <option>Google Maps</option>
-                  <option>Bạn bè giới thiệu</option>
-                  <option>Tự tìm</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-footer">
-              <span class="form-hint">* Bắt buộc · Hiện ngay sau khi gửi</span>
-              <button class="btn-submit" id="btnSubmit" onclick="submitReview()">
-                Gửi đánh giá →
-              </button>
-            </div>
-            <div class="submit-success" id="submitSuccess">
-              ✅ Cảm ơn bạn đã đánh giá! Ý kiến của bạn giúp NOX ngày càng tốt hơn.
-            </div>
+        <div class="bar-list" id="barList">
+          <!-- Rating bars: 5→1 -->
+          <div class="bar-row"><span class="bar-num">5</span><div class="bar-track"><div class="bar-fill" id="bar5" style="width:0%"></div></div><span class="bar-pct" id="pct5">0%</span></div>
+          <div class="bar-row"><span class="bar-num">4</span><div class="bar-track"><div class="bar-fill" id="bar4" style="width:0%"></div></div><span class="bar-pct" id="pct4">0%</span></div>
+          <div class="bar-row"><span class="bar-num">3</span><div class="bar-track"><div class="bar-fill" id="bar3" style="width:0%"></div></div><span class="bar-pct" id="pct3">0%</span></div>
+          <div class="bar-row"><span class="bar-num">2</span><div class="bar-track"><div class="bar-fill" id="bar2" style="width:0%"></div></div><span class="bar-pct" id="pct2">0%</span></div>
+          <div class="bar-row"><span class="bar-num">1</span><div class="bar-track"><div class="bar-fill" id="bar1" style="width:0%"></div></div><span class="bar-pct" id="pct1">0%</span></div>
+        </div>
+        <div class="plat-section">
+          <div class="plat-title">Tim chung toi tren</div>
+          <div class="plat-row">
+            <span class="plat-icon">FB</span>
+            <span class="plat-name">Facebook</span>
+            <span class="plat-val">NOX Joy Station</span>
           </div>
-
-          <!-- Filter + sort -->
-          <div class="filter-bar" id="filterBar">
-            <button class="filter-btn active" data-f="">Tất cả</button>
-            <button class="filter-btn" data-f="5">⭐⭐⭐⭐⭐</button>
-            <button class="filter-btn" data-f="4">⭐⭐⭐⭐</button>
-            <button class="filter-btn" data-f="couple">💑 Couple</button>
-            <button class="filter-btn" data-f="group" >👫 Nhóm</button>
-            <button class="filter-btn" data-f="party" >🎉 Party</button>
-            <span class="review-count-lbl" id="rvCountLbl"></span>
-            <select class="sort-sel" id="sortSel" onchange="renderReviews()">
-              <option value="newest" >Mới nhất</option>
-              <option value="highest">Sao cao nhất</option>
-              <option value="lowest" >Sao thấp nhất</option>
-            </select>
+          <div class="plat-row">
+            <span class="plat-icon">TT</span>
+            <span class="plat-name">TikTok</span>
+            <span class="plat-val">@noxjoystation</span>
           </div>
-
-          <!-- Reviews list -->
-          <div class="rv-grid"    id="rvGrid"></div>
-          <div class="pagination" id="pagination"></div>
-
+          <div class="plat-row">
+            <span class="plat-icon">GG</span>
+            <span class="plat-name">Google Maps</span>
+            <span class="plat-val">NOX Joy Station HN</span>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
 
-  <script src="../js/config.js"   defer></script>
-  <script src="../js/api.js"      defer></script>
-  <script src="../js/utils.js"    defer></script>
-  <script src="../js/init.js"     defer></script>
-  <script src="../js/components.js" defer></script>
-  <script src="../js/reviews.js"  defer></script>
+      <!-- Right column -->
+      <div class="rv-right">
+
+        <!-- Write review -->
+        <div class="form-card rev">
+          <div class="form-title">Viet danh gia</div>
+          <div class="star-picker-wrap">
+            <div class="star-picker" id="starPicker">
+              <span class="sp-star" data-v="1">&#9733;</span>
+              <span class="sp-star" data-v="2">&#9733;</span>
+              <span class="sp-star" data-v="3">&#9733;</span>
+              <span class="sp-star" data-v="4">&#9733;</span>
+              <span class="sp-star" data-v="5">&#9733;</span>
+            </div>
+            <span class="star-hint" id="starHint">Chon so sao</span>
+          </div>
+          <div class="form-grid">
+            <div class="fg2">
+              <label>Ten cua ban</label>
+              <input id="fName" placeholder="Nguyen Van A" maxlength="40">
+            </div>
+            <div class="fg2">
+              <label>Loai phong da dung</label>
+              <select id="fRoom">
+                <option value="">-- Chon loai phong --</option>
+                <optgroup label="Tang 6">
+                  <option value="t6-room1">Room 1 T6 (Small)</option>
+                  <option value="t6-room2">Room 2 T6 (Deluxe)</option>
+                  <option value="t6-room3">Room 3 T6 (Small)</option>
+                  <option value="t6-room4">Room 4 T6 (Classic)</option>
+                  <option value="t6-big">Big Room T6</option>
+                </optgroup>
+                <optgroup label="Tang 5">
+                  <option value="t5-room1">Room 1 T5 (Deluxe)</option>
+                  <option value="t5-room2">Room 2 T5 (Classic)</option>
+                  <option value="t5-room3">Room 3 T5 (Small)</option>
+                  <option value="t5-room4">Room 4 T5 (Small)</option>
+                  <option value="t5-big">Big Room T5</option>
+                </optgroup>
+                <optgroup label="Tang 4 Cine Box">
+                  <option value="cine-1">Cine 1</option>
+                  <option value="cine-2">Cine 2</option>
+                  <option value="cine-3">Cine 3</option>
+                  <option value="suite-1">Suite 1</option>
+                  <option value="suite-2">Suite 2</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="fg2">
+              <label>Loai luot di choi</label>
+              <select id="fVisit">
+                <option value="">-- Loai luot --</option>
+                <option value="couple">Cap doi</option>
+                <option value="group">Nhom ban</option>
+                <option value="party">Sinh nhat / Tiec</option>
+                <option value="solo">Solo</option>
+                <option value="work">Dong nghiep</option>
+              </select>
+            </div>
+            <div class="fg2">
+              <label>Nguon (tuy chon)</label>
+              <select id="fSource">
+                <option value="">-- Biet den qua --</option>
+                <option value="Facebook">Facebook</option>
+                <option value="TikTok">TikTok</option>
+                <option value="Google">Google</option>
+                <option value="Ban be">Ban be gioi thieu</option>
+                <option value="Khac">Khac</option>
+              </select>
+            </div>
+            <div class="fg2 fg-full">
+              <label>Noi dung danh gia *</label>
+              <textarea id="fContent" placeholder="Cam nhan cua ban ve khong gian, dich vu, trai nghiem..." rows="4"></textarea>
+            </div>
+          </div>
+          <button class="btn btn-gold" style="width:100%;justify-content:center" id="submitReviewBtn" onclick="submitReview()">
+            Gui danh gia
+          </button>
+          <div class="form-alert" id="reviewAlert"></div>
+        </div>
+
+        <!-- Filters -->
+        <div class="rv-filters rev" id="rvFilters">
+          <button class="rv-filter-btn active" data-filter="all">Tat ca</button>
+          <button class="rv-filter-btn" data-filter="5">5 sao</button>
+          <button class="rv-filter-btn" data-filter="4">4 sao</button>
+          <button class="rv-filter-btn" data-filter="couple">Cap doi</button>
+          <button class="rv-filter-btn" data-filter="group">Nhom ban</button>
+          <button class="rv-filter-btn" data-filter="party">Sinh nhat</button>
+        </div>
+
+        <!-- Review list -->
+        <div class="review-list rev" id="reviewList"></div>
+        <div class="load-more-wrap">
+          <button class="btn btn-outline" id="loadMoreBtn" style="display:none" onclick="loadMoreReviews()">Xem them</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="../js/utils.js" defer></script>
+<script src="../js/config.js" defer></script>
+<script src="../js/api.js" defer></script>
+<script src="../js/init.js" defer></script>
+<script src="../js/components.js" defer></script>
+<script src="../js/reviews.js" defer></script>
 </body>
 </html>

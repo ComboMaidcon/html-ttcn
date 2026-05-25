@@ -3,195 +3,187 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NOX Joy Station – Phòng Game Private Hà Nội</title>
+<title>NOX Joy Station — Phòng Game Private Hà Nội</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../css/style.css">
 <style>
-/* ── Hero ── */
+/* ── HERO ── */
 .hero {
-  min-height:100vh;
-  display:flex; flex-direction:column; justify-content:center;
-  padding:0 3.5rem;
-  position:relative; overflow:hidden;
-  padding-top:80px;
+  min-height: 100vh;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 120px 56px 72px;
+  position: relative; overflow: hidden; background: var(--black);
 }
 .hero-bg {
-  position:absolute; inset:0;
+  position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse 55% 70% at 85% 50%, rgba(245,197,24,.07) 0%, transparent 70%),
-    radial-gradient(ellipse 35% 50% at 10% 50%, rgba(245,197,24,.04) 0%, transparent 70%),
-    var(--dark);
+    radial-gradient(ellipse 70% 80% at 0% 100%, rgba(124,58,237,.2) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 60% at 100% 0%, rgba(0,201,201,.12) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 50%, rgba(200,168,75,.05) 0%, transparent 60%);
 }
 .hero-grid {
-  position:absolute; inset:0;
+  position: absolute; inset: 0;
   background-image:
-    linear-gradient(rgba(245,197,24,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(245,197,24,.03) 1px, transparent 1px);
-  background-size:55px 55px;
-  
+    linear-gradient(rgba(200,168,75,.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,168,75,.022) 1px, transparent 1px);
+  background-size: 80px 80px;
 }
-@keyframes gridScroll { to { background-position:0 55px; } }
-.hero-bg-word {
-  position:absolute; right:-1rem; top:50%; transform:translateY(-50%);
-  font-family:'Bebas Neue',sans-serif; font-size:16vw;
-  color:rgba(245,197,24,.025); line-height:1;
-  pointer-events:none; user-select:none; white-space:nowrap;
+/* Ambient orbs */
+.hero-orb {
+  position: absolute; border-radius: 50%; filter: blur(80px); pointer-events:none;
 }
-.hero-glow {
-  position:absolute; right:8%; top:50%; transform:translateY(-50%);
-  width:500px; height:500px;
-  background:radial-gradient(circle, rgba(245,197,24,.1) 0%, transparent 70%);
-  
-}
-@keyframes pulse2 { 0%,100%{transform:translateY(-50%) scale(1)} 50%{transform:translateY(-50%) scale(1.1)} }
+.hero-orb-1 { width:500px; height:500px; background:rgba(124,58,237,.12); bottom:-100px; left:-100px; }
+.hero-orb-2 { width:400px; height:400px; background:rgba(0,201,201,.08); top:50px; right:-80px; }
+.hero-orb-3 { width:300px; height:300px; background:rgba(200,168,75,.06); top:30%; left:40%; }
 
-.hero-content { position:relative; z-index:2; max-width:750px; }
-.hero-pill {
-  display:inline-flex; align-items:center; gap:.6rem;
-  background:rgba(245,197,24,.1); border:1px solid rgba(245,197,24,.28);
-  border-radius:50px; padding:.4rem 1.1rem;
-  font-size:.78rem; font-weight:600; color:var(--gold); letter-spacing:.5px;
-  margin-bottom:1.8rem;
-  animation:fadeUp .7s ease both;
-}
-.pill-dot { width:7px; height:7px; background:var(--gold); border-radius:50%; animation:blink 1.4s infinite; }
+.hero-word { position:absolute; right:-2rem; bottom:-2rem; font-family:var(--font-display); font-size:28vw; color:rgba(200,168,75,.015); line-height:1; pointer-events:none; user-select:none; letter-spacing:-4px; }
+.hero-content { position:relative; z-index:2; max-width:1200px; width:100%; }
 
-.hero h1 {
-  font-size:clamp(2rem,4.5vw,4rem);
-  line-height:.95; letter-spacing:-2px;
-  animation:fadeUp .7s .15s ease both;
-}
-.hero h1 em { font-style:normal; color:var(--gold); display:block; }
-.hero-sub {
-  color:var(--muted); font-size:1.05rem; line-height:1.8; max-width:480px;
-  margin-top:1.4rem; animation:fadeUp .7s .3s ease both;
-}
-.hero-chips { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1.3rem; animation:fadeUp .7s .4s ease both; }
-.hero-ctas { display:flex; gap:1rem; margin-top:2.2rem; animation:fadeUp .7s .5s ease both; flex-wrap:wrap; }
-.hero-stats {
-  display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;
-  margin-top:3.5rem; animation:fadeUp .7s .65s ease both;
-  max-width:600px;
-}
-.stat-card {
-  background:var(--dark2); border:1px solid rgba(245,197,24,.1); border-radius:12px;
-  padding:.9rem 1rem;
-}
-.stat-num { font-family:'Kanit',sans-serif; font-size:1.7rem; font-weight:800; color:var(--gold); line-height:1; }
-.stat-lbl { font-size:.72rem; color:var(--muted); margin-top:.2rem; line-height:1.4; }
+.hero-stripe-row { display:flex; align-items:center; gap:16px; margin-bottom:2rem; animation:fadeUp .6s ease both; }
+.hero-stripe-label { font-family:var(--font-condensed); font-size:.7rem; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:var(--muted); }
 
-/* ── Features ── */
-.features-sec { background:var(--black); }
-.features-grid {
-  display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
-  background:rgba(245,197,24,.06); border:1px solid rgba(245,197,24,.06);
-  border-radius:var(--radius); overflow:hidden;
-  margin-top:3rem;
-}
-.feat-item {
-  background:var(--dark); padding:2rem 1.5rem; text-align:center;
-  transition:background var(--transition);
-}
-.feat-item:hover { background:var(--dark2); }
-.feat-icon { font-size:2rem; margin-bottom:.8rem; display:block; filter:drop-shadow(0 0 14px rgba(245,197,24,.4)); }
-.feat-name { font-family:'Kanit',sans-serif; font-weight:700; font-size:.9rem; color:var(--white); margin-bottom:.5rem; }
-.feat-desc { font-size:.82rem; color:var(--muted); line-height:1.65; }
+.hero h1 { font-size:clamp(4rem,9vw,9rem); line-height:.92; letter-spacing:-1px; animation:fadeUp .6s .1s ease both; }
+.hero h1 em { font-style:normal; color:var(--gold); }
+.hero h1 .c { color:var(--cyan); }
 
-/* ── For Who ── */
-.forwho-sec { background:var(--dark); }
-.forwho-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-top:3rem; }
-.fw-card {
-  border-radius:var(--radius); padding:2rem;
-  border:1px solid rgba(245,197,24,.1);
-  display:flex; gap:1.4rem; align-items:flex-start;
-  transition:all var(--transition);
-}
-.fw-card:hover { border-color:rgba(245,197,24,.3); transform:translateY(-4px); }
-.fw-card.gold-tint { background:linear-gradient(135deg,rgba(245,197,24,.1),rgba(245,197,24,.03)); }
-.fw-card.dark-tint { background:var(--dark2); }
-.fw-icon { font-size:2.4rem; flex-shrink:0; margin-top:.1rem; }
-.fw-name { font-family:'Kanit',sans-serif; font-weight:800; font-size:1.15rem; margin-bottom:.4rem; }
-.fw-desc { font-size:.87rem; color:var(--muted); line-height:1.75; }
+.hero-split { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; margin-top:2rem; }
+.hero-left  { animation:fadeUp .6s .05s ease both; }
+.hero-right { animation:fadeUp .6s .2s ease both; }
 
-/* ── CTA Banner ── */
-.cta-banner {
-  background:var(--black); padding:4rem 3.5rem;
-}
-.cta-inner {
-  max-width:1100px; margin:0 auto;
-  background:linear-gradient(135deg, #1a1500 0%, #111100 50%, #1a1200 100%);
-  border:1px solid var(--gold-border);
-  border-radius:20px; padding:3.5rem;
-  display:flex; align-items:center; justify-content:space-between;
-  gap:2rem; flex-wrap:wrap;
-  position:relative; overflow:hidden;
-}
-.cta-inner::before {
-  content:''; position:absolute; inset:0;
-  background:radial-gradient(ellipse 50% 80% at 100% 50%, rgba(245,197,24,.08), transparent);
-  pointer-events:none;
-}
-.cta-text h2 { font-size:clamp(1.5rem,3vw,2.5rem); }
-.cta-text h2 span { color:var(--gold); }
-.cta-text p { color:var(--muted); margin-top:.5rem; font-size:.95rem; }
-.cta-actions { display:flex; gap:1rem; flex-wrap:wrap; position:relative; z-index:1; }
+.hero-sub { font-size:1rem; line-height:1.8; color:var(--muted); max-width:420px; margin-bottom:2rem; font-weight:300; }
+.hero-ctas { display:flex; gap:1rem; flex-wrap:wrap; }
 
-/* scroll indicator */
-.scroll-ind {
-  position:absolute; bottom:2rem; left:50%; transform:translateX(-50%);
-  display:flex; flex-direction:column; align-items:center; gap:.4rem;
-  animation:fadeIn 1s 1.5s both; z-index:2;
-}
-.scroll-ind span { font-size:.62rem; letter-spacing:3px; color:rgba(245,197,24,.4); text-transform:uppercase; }
-.scroll-line { width:1px; height:40px; background:linear-gradient(180deg,var(--gold),transparent); animation:scrollPulse 2s ease-in-out infinite; }
+/* Stats */
+.hero-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:rgba(200,168,75,.08); border:1px solid rgba(200,168,75,.08); margin-top:2rem; }
+.stat-item { background:var(--black); padding:1.8rem 1.5rem; position:relative; overflow:hidden; transition:background var(--transition); }
+.stat-item:hover { background:var(--dark2); }
+.stat-item::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; opacity:0; transition:opacity var(--transition); }
+.stat-item:nth-child(1)::before { background:var(--cyan); }
+.stat-item:nth-child(2)::before { background:var(--purple); }
+.stat-item:nth-child(3)::before { background:var(--grad-gold); }
+.stat-item:nth-child(4)::before { background:var(--m-red); }
+.stat-item:hover::before { opacity:1; }
+.stat-num { font-family:var(--font-display); font-size:3.5rem; line-height:1; color:var(--white); letter-spacing:1px; }
+.stat-num em { font-style:normal; }
+.stat-item:nth-child(1) .stat-num em { color:var(--cyan); }
+.stat-item:nth-child(2) .stat-num em { color:var(--purple); }
+.stat-item:nth-child(3) .stat-num em { color:var(--gold); }
+.stat-item:nth-child(4) .stat-num em { color:var(--m-red); }
+.stat-lbl { font-family:var(--font-condensed); font-size:.68rem; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); margin-top:.4rem; }
+
+/* Scroll indicator */
+.scroll-ind { position:absolute; bottom:2.5rem; right:56px; display:flex; flex-direction:column; align-items:center; gap:.5rem; z-index:2; animation:fadeIn 1s 1s ease both; }
+.scroll-ind span { font-family:var(--font-condensed); font-size:.6rem; letter-spacing:4px; color:rgba(200,168,75,.4); text-transform:uppercase; writing-mode:vertical-rl; }
+.scroll-line { width:1px; height:50px; background:linear-gradient(180deg, var(--gold), transparent); animation:scrollPulse 2.2s ease-in-out infinite; }
 @keyframes scrollPulse { 0%{transform:scaleY(0);transform-origin:top} 50%{transform:scaleY(1);transform-origin:top} 51%{transform:scaleY(1);transform-origin:bottom} 100%{transform:scaleY(0);transform-origin:bottom} }
 
+/* ── FEATURES (purple band) ── */
+.features-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:rgba(200,168,75,.06); border:1px solid rgba(200,168,75,.06); margin-top:3.5rem; }
+.feat-item { background:var(--dark); padding:2.5rem 1.8rem; transition:all var(--transition); position:relative; overflow:hidden; border-left:2px solid transparent; }
+.feat-item:hover { background:var(--dark2); border-left-color:var(--cyan); }
+.feat-item:nth-child(4n+1):hover { border-left-color:var(--cyan); }
+.feat-item:nth-child(4n+2):hover { border-left-color:var(--gold); }
+.feat-item:nth-child(4n+3):hover { border-left-color:var(--purple); }
+.feat-item:nth-child(4n+0):hover { border-left-color:var(--m-red); }
+.feat-num { font-family:var(--font-display); font-size:3rem; color:rgba(200,168,75,.1); line-height:1; margin-bottom:1rem; }
+.feat-name { font-family:var(--font-condensed); font-weight:700; font-size:.85rem; letter-spacing:2px; text-transform:uppercase; color:var(--white); margin-bottom:.6rem; }
+.feat-desc { font-size:.83rem; color:var(--muted); line-height:1.7; }
+
+/* ── FOR WHO (light band) ── */
+.forwho-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:rgba(8,8,8,.12); margin-top:3.5rem; }
+.fw-card { background:var(--white); padding:3rem; border-top:4px solid transparent; transition:all var(--transition); }
+.fw-card:nth-child(1) { border-color:var(--m-blue-dark); }
+.fw-card:nth-child(2) { border-color:var(--m-red); }
+.fw-card:nth-child(3) { border-color:var(--m-blue-light); }
+.fw-card:nth-child(4) { border-color:var(--gold); }
+.fw-card:hover { background:#f5f3ee; }
+.fw-num { font-family:var(--font-display); font-size:4rem; color:rgba(8,8,8,.05); line-height:1; margin-bottom:.8rem; }
+.fw-name { font-family:var(--font-display); font-size:2rem; color:var(--black); margin-bottom:.8rem; text-transform:uppercase; letter-spacing:1px; }
+.fw-desc { font-size:.9rem; color:rgba(8,8,8,.55); line-height:1.75; }
+
+/* ── CTA BANNER ── */
+.cta-banner { padding:80px 56px; background:var(--dark); }
+.cta-inner {
+  max-width:1200px; margin:0 auto;
+  background:
+    radial-gradient(ellipse 80% 100% at 0% 50%, rgba(124,58,237,.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 100% 50%, rgba(0,201,201,.1) 0%, transparent 60%),
+    var(--black);
+  border:1px solid rgba(200,168,75,.15);
+  border-top:none; overflow:hidden;
+}
+.cta-stripe { height:4px; background:var(--grad-stripe); }
+.cta-body { display:flex; align-items:center; justify-content:space-between; gap:2rem; flex-wrap:wrap; padding:4rem; }
+.cta-text h2 { font-size:clamp(2rem,4vw,4rem); }
+.cta-text h2 span { color:var(--gold); }
+.cta-text h2 .c { color:var(--cyan); }
+.cta-text p { color:var(--muted); margin-top:.6rem; }
+.cta-actions { display:flex; gap:1rem; flex-wrap:wrap; }
+
 @media(max-width:960px) {
-  .hero { padding:80px 1.5rem 3rem; min-height:auto; }
-  .hero-stats { grid-template-columns:repeat(2,1fr); }
-  .features-grid { grid-template-columns:1fr 1fr; }
+  .hero { padding:80px 24px 56px; }
+  .hero-split { grid-template-columns:1fr; gap:2rem; margin-top:1.5rem; }
+  .hero-stats { grid-template-columns:1fr 1fr; }
+  .features-grid { grid-template-columns:repeat(2,1fr); }
   .forwho-grid { grid-template-columns:1fr; }
-  .cta-banner { padding:2rem 1.5rem; }
-  .cta-inner { padding:2rem; }
+  .cta-banner { padding:56px 24px; }
+  .cta-body { padding:2.5rem; }
+  .scroll-ind { display:none; }
+  .hero-orb { display:none; }
+}
+@media(max-width:640px) {
+  .features-grid { grid-template-columns:1fr; }
 }
 </style>
 </head>
 <body>
 
-<!-- ── NAV injected by components.js ── -->
-
-<!-- HERO -->
 <section class="hero">
   <div class="hero-bg"></div>
   <div class="hero-grid"></div>
-  <div class="hero-bg-word">NOX</div>
-  <div class="hero-glow"></div>
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
+  <div class="hero-word">NOX</div>
 
   <div class="hero-content">
-    <div class="hero-pill">
-      <span class="pill-dot"></span>
-      Đang mở cửa · 9:00 – 2:00 sáng hằng ngày
+    <div class="hero-stripe-row">
+      <div class="m-stripe-sm"></div>
+      <span class="hero-stripe-label">Mở cửa 09:00 — 02:00 — Hà Nội</span>
     </div>
-    <h1>NOX Joy Station —<br><em>Phòng riêng, vibe riêng</em></h1>
-    <p class="hero-sub">Không gian riêng tư để chơi PS5, Nintendo Switch, xem Netflix hay quẩy boardgame cùng người ấy hoặc nhóm bạn thân — chỉ từ <strong style="color:var(--gold)">25.000đ</strong>.</p>
-    <div class="hero-chips">
-      <div class="chip">🎮 <b>PS5 · Switch</b></div>
-      <div class="chip">🎲 <b>30+ Boardgame miễn phí</b></div>
-      <div class="chip">🎬 <b>Cine Box · Netflix</b></div>
-      <div class="chip">🍕 <b>Order tận phòng</b></div>
-      <div class="chip">🔒 <b>Private 100%</b></div>
+
+    <div class="hero-split">
+      <div class="hero-left">
+        <h1>Phòng<br>riêng<br><em>vibe <span class="c">riêng</span></em></h1>
+      </div>
+      <div class="hero-right">
+        <p class="hero-sub">Không gian private để chơi PS5, Nintendo Switch, xem Netflix hay quẩy boardgame cùng người ấy hoặc nhóm bạn — không chia sẻ với bất kỳ ai.</p>
+        <div class="hero-ctas">
+          <a href="rooms.html" class="btn btn-gold">Xem phòng trống</a>
+          <a href="booking.html" class="btn btn-outline">Đặt phòng ngay</a>
+        </div>
+      </div>
     </div>
-    <div class="hero-ctas">
-      <a href="rooms.html" class="btn btn-gold">🔍 Xem phòng trống</a>
-      <a href="booking.html" class="btn btn-outline">📅 Đặt phòng ngay</a>
-    </div>
+
     <div class="hero-stats">
-      <div class="stat-card"><div class="stat-num">15</div><div class="stat-lbl">Phòng private</div></div>
-      <div class="stat-card"><div class="stat-num">3</div><div class="stat-lbl">Tầng · T4 T5 T6</div></div>
-      <div class="stat-card"><div class="stat-num">59K</div><div class="stat-lbl">Giá từ / giờ</div></div>
-      <div class="stat-card"><div class="stat-num">9h–2h</div><div class="stat-lbl">Mở cửa mỗi ngày</div></div>
+      <div class="stat-item">
+        <div class="stat-num">15<em>+</em></div>
+        <div class="stat-lbl">Phòng private</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num"><em>3</em></div>
+        <div class="stat-lbl">Tầng — T4 T5 T6</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">59<em>K</em></div>
+        <div class="stat-lbl">Giá từ / giờ</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">17<em>H</em></div>
+        <div class="stat-lbl">Mở cửa mỗi ngày</div>
+      </div>
     </div>
   </div>
 
@@ -201,64 +193,38 @@
   </div>
 </section>
 
-<!-- TICKER injected -->
-
 <!-- FEATURES -->
-<section class="section features-sec">
+<section class="section band-gradient-purple">
   <div class="section-inner">
     <div class="rev">
-      <div class="sec-label">Tại sao chọn NOX</div>
-      <h2>Trải nghiệm <span style="color:var(--gold)">khác biệt</span></h2>
+      <div class="label-tag cyan">Tại sao chọn NOX</div>
+      <h2>Trải nghiệm<br>khác biệt</h2>
     </div>
     <div class="features-grid rev">
-      <div class="feat-item"><span class="feat-icon">🔒</span><div class="feat-name">Private 100%</div><p class="feat-desc">Phòng hoàn toàn riêng tư, không chia sẻ với khách lạ</p></div>
-      <div class="feat-item"><span class="feat-icon">💰</span><div class="feat-name">Giá rõ ràng, không ẩn phí</div><p class="feat-desc">Chỉ từ 59K/giờ cho Small Room — rẻ hơn một buổi cà phê</p></div>
-      <div class="feat-item"><span class="feat-icon">🎲</span><div class="feat-name">Boardgame miễn phí</div><p class="feat-desc">30+ boardgame miễn phí kèm theo mọi phòng, mọi khung giờ</p></div>
-      <div class="feat-item"><span class="feat-icon">⏰</span><div class="feat-name">Mở 9h – 2h sáng</div><p class="feat-desc">Phục vụ từ sáng sớm đến tận 2h đêm mỗi ngày</p></div>
-      <div class="feat-item"><span class="feat-icon">🍜</span><div class="feat-name">F&B tận phòng</div><p class="feat-desc">Order tận phòng miễn phí — mang đồ ngoài vào phụ thu 40K</p></div>
-      <div class="feat-item"><span class="feat-icon">🧹</span><div class="feat-name">Sạch sẽ & tiện nghi</div><p class="feat-desc">Dọn dẹp kỹ lưỡng sau mỗi lượt khách</p></div>
-      <div class="feat-item"><span class="feat-icon">📅</span><div class="feat-name">Đặt phòng dễ dàng</div><p class="feat-desc">Book online hoặc nhắn tin fanpage — xác nhận nhanh</p></div>
-      <div class="feat-item"><span class="feat-icon">🏆</span><div class="feat-name">Đặt phòng dễ dàng</div><p class="feat-desc">Đặt phòng online hoặc nhắn fanpage — xác nhận trong 5 phút</p></div>
+      <div class="feat-item"><div class="feat-num">01</div><div class="feat-name">Private 100%</div><p class="feat-desc">Phòng hoàn toàn riêng tư, không chia sẻ với khách lạ.</p></div>
+      <div class="feat-item"><div class="feat-num">02</div><div class="feat-name">Giá rõ ràng</div><p class="feat-desc">Chỉ từ 59K/giờ cho Small Room. Bảng giá công khai, không ẩn phí.</p></div>
+      <div class="feat-item"><div class="feat-num">03</div><div class="feat-name">Boardgame miễn phí</div><p class="feat-desc">30+ boardgame miễn phí kèm theo mọi phòng, mọi khung giờ.</p></div>
+      <div class="feat-item"><div class="feat-num">04</div><div class="feat-name">Mở 9h — 2h sáng</div><p class="feat-desc">Phục vụ từ sáng sớm đến tận 2h đêm mỗi ngày trong tuần.</p></div>
+      <div class="feat-item"><div class="feat-num">05</div><div class="feat-name">F&amp;B tận phòng</div><p class="feat-desc">Order trà, đồ chiên, snack tận phòng. Đồ ngoài phụ thu 40K.</p></div>
+      <div class="feat-item"><div class="feat-num">06</div><div class="feat-name">Sạch sẽ &amp; tiện nghi</div><p class="feat-desc">Dọn dẹp kỹ lưỡng sau mỗi lượt khách. Trang thiết bị bảo trì thường xuyên.</p></div>
+      <div class="feat-item"><div class="feat-num">07</div><div class="feat-name">Đặt phòng dễ dàng</div><p class="feat-desc">Book online hoặc nhắn fanpage — xác nhận trong 5–15 phút.</p></div>
+      <div class="feat-item"><div class="feat-num">08</div><div class="feat-name">3 loại không gian</div><p class="feat-desc">Game Room, Cine Box và Suite — từ solo đến nhóm 8 người.</p></div>
     </div>
   </div>
 </section>
 
-<!-- FOR WHO -->
-<section class="section forwho-sec">
+<!-- FOR WHO — Light band -->
+<section class="section band-light">
   <div class="section-inner">
-    <div class="rev" style="text-align:center">
-      <div class="sec-label centered">Dành cho ai</div>
-      <h2>NOX dành cho <span style="color:var(--gold)">tất cả mọi người</span></h2>
+    <div class="rev">
+      <div class="label-tag" style="color:var(--m-blue-dark)"><span style="display:inline-block;width:28px;height:1px;background:var(--m-blue-dark)"></span>Dành cho ai</div>
+      <h2 style="color:var(--black)">NOX dành<br>cho tất cả</h2>
     </div>
     <div class="forwho-grid rev">
-      <div class="fw-card gold-tint">
-        <div class="fw-icon">💑</div>
-        <div>
-          <div class="fw-name">Hẹn hò cặp đôi</div>
-          <p class="fw-desc">Chán cà phê, chán đi ăn? Đưa người ấy đến NOX — cùng phá đảo It Takes Two, xem Netflix trong phòng riêng siêu lãng mạn. Date xịn nhất Hà Nội!</p>
-        </div>
-      </div>
-      <div class="fw-card dark-tint">
-        <div class="fw-icon">👯</div>
-        <div>
-          <div class="fw-name">Nhóm bạn thân</div>
-          <p class="fw-desc">Kéo nhau đến NOX — chill boardgame, chơi Nintendo, cười bể bụng mà không lo làm phiền ai. Phòng lớn chứa được cả chục người!</p>
-        </div>
-      </div>
-      <div class="fw-card dark-tint">
-        <div class="fw-icon">🎂</div>
-        <div>
-          <div class="fw-name">Sinh nhật & tụ họp</div>
-          <p class="fw-desc">Book Party Room, mang bánh vào, quẩy game đến sáng. Không cần tổ chức phức tạp, chỉ cần có mặt và vui!</p>
-        </div>
-      </div>
-      <div class="fw-card gold-tint">
-        <div class="fw-icon">🎮</div>
-        <div>
-          <div class="fw-name">Game thủ nghiêm túc</div>
-          <p class="fw-desc">Muốn trải nghiệm PS5 với TV 4K đỉnh hơn ở nhà? Hoặc rủ nhau cày co-op cả buổi mà không bị làm phiền? NOX là địa chỉ hoàn hảo!</p>
-        </div>
-      </div>
+      <div class="fw-card"><div class="fw-num">01</div><div class="fw-name">Hẹn hò cặp đôi</div><p class="fw-desc">Chán cà phê, chán đi ăn? Đưa người ấy đến NOX — cùng phá đảo It Takes Two, xem Netflix trong phòng riêng.</p></div>
+      <div class="fw-card"><div class="fw-num">02</div><div class="fw-name">Nhóm bạn thân</div><p class="fw-desc">Kéo nhau đến NOX — chill boardgame, chơi Nintendo, cười bể bụng mà không lo làm phiền ai.</p></div>
+      <div class="fw-card"><div class="fw-num">03</div><div class="fw-name">Sinh nhật &amp; tụ họp</div><p class="fw-desc">Book Party Room, mang bánh vào, quẩy game đến sáng. Không cần tổ chức phức tạp.</p></div>
+      <div class="fw-card"><div class="fw-num">04</div><div class="fw-name">Game thủ nghiêm túc</div><p class="fw-desc">Trải nghiệm PS5 với TV 4K đỉnh hơn ở nhà. Cày co-op cả buổi không bị làm phiền.</p></div>
     </div>
   </div>
 </section>
@@ -266,18 +232,19 @@
 <!-- CTA BANNER -->
 <div class="cta-banner">
   <div class="cta-inner rev">
-    <div class="cta-text">
-      <h2>Còn chờ gì nữa?<br><span>Đặt phòng ngay hôm nay!</span></h2>
-      <p>Kiểm tra phòng trống theo giờ bạn muốn — nhanh, dễ, không rắc rối.</p>
-    </div>
-    <div class="cta-actions">
-      <a href="rooms.html" class="btn btn-gold">🔍 Xem phòng trống</a>
-      <a href="booking.html" class="btn btn-outline">📅 Đặt luôn</a>
+    <div class="cta-stripe"></div>
+    <div class="cta-body">
+      <div class="cta-text">
+        <h2>Còn chờ<br><span>gì nữa?</span></h2>
+        <p>Kiểm tra phòng trống theo giờ bạn muốn — nhanh, dễ, không rắc rối.</p>
+      </div>
+      <div class="cta-actions">
+        <a href="rooms.html" class="btn btn-gold">Xem phòng trống</a>
+        <a href="booking.html" class="btn btn-outline">Đặt luôn</a>
+      </div>
     </div>
   </div>
 </div>
-
-<!-- FOOTER injected -->
 
 <script src="../js/utils.js" defer></script>
 <script src="../js/rooms-data.js" defer></script>
@@ -287,7 +254,7 @@
 <script src="../js/config.js" defer></script>
 <script src="../js/api.js" defer></script>
 <script defer>
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener('DOMContentLoaded', () => {
     injectShared({ ticker: true });
     initPage();
   });
