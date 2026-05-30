@@ -23,7 +23,8 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       .from('invoices')
       .select('*, bookings!inner(booking_date, start_time, is_overnight, channel, rooms(name))')
       .gte('created_at', start + 'T00:00:00Z')
-      .lte('created_at', end + 'T23:59:59Z');
+      .lte('created_at', end + 'T23:59:59Z')
+      .order('created_at', { ascending: false });
 
     if (invErr) throw invErr;
 
@@ -99,15 +100,23 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       const validInvoiceIds = filteredInvoices.map(i => i.id);
       
       // We chunk the IN clause just in case there are thousands of invoices
-      // For simplicity, assuming < 1000 invoices per filter
-      const { data: foodItems } = await supabase
-        .from('invoice_items')
-        .select('description, quantity, unit_price')
-        .eq('item_type', 'food')
-        .in('invoice_id', validInvoiceIds);
+      let foodItems = [];
+      const chunkSize = 200;
+      for (let i = 0; i < validInvoiceIds.length; i += chunkSize) {
+        const chunk = validInvoiceIds.slice(i, i + chunkSize);
+        const { data, error } = await supabase
+          .from('invoice_items')
+          .select('description, quantity, unit_price')
+          .eq('item_type', 'food')
+          .in('invoice_id', chunk);
+        if (error) console.error("Chunk Error:", error);
+        if (data) foodItems = foodItems.concat(data);
+      }
+      
+      console.log("foodItems length:", foodItems.length);
         
       const menuCounts = {};
-      if (foodItems) {
+      if (foodItems && foodItems.length > 0) {
         foodItems.forEach(item => {
           if (menuName && menuName !== 'all' && item.description !== menuName && !item.description.startsWith(menuName)) return;
           // Normalize name by removing variants to group better, or keep as is. Keeping as is for accuracy.

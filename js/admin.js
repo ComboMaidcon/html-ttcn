@@ -504,7 +504,7 @@ async function renderReportsTab() {
     const ov = res.overview;
     statsWrap.innerHTML = `
       <div class="stat-card">
-        <div class="stat-num">${(ov.totalRevenue / 1000).toLocaleString()}K</div>
+        <div class="stat-num">${(ov.totalRevenue).toLocaleString()}K</div>
         <div class="stat-label">TỔNG DOANH THU</div>
       </div>
       <div class="stat-card">
@@ -512,7 +512,7 @@ async function renderReportsTab() {
         <div class="stat-label">LƯỢT ĐẶT PHÒNG</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num" style="color: #4ade80">${(ov.avgRevPerBooking / 1000).toLocaleString()}K</div>
+        <div class="stat-num" style="color: #4ade80">${(ov.avgRevPerBooking).toLocaleString()}K</div>
         <div class="stat-label">ARPU (DOANH THU / LƯỢT)</div>
       </div>
     `;
@@ -522,7 +522,7 @@ async function renderReportsTab() {
     const pct = (val) => ((val / total) * 100).toFixed(1) + '%';
     document.getElementById('revenueBreakdown').innerHTML = `
       <div style="display:flex; justify-content:space-between; margin-bottom: 5px">
-        <span>Tiền Phòng: <strong>${(ov.roomRevenue / 1000).toLocaleString()}K</strong></span>
+        <span>Tiền Phòng: <strong>${(ov.roomRevenue).toLocaleString()}K</strong></span>
         <span style="color:var(--muted)">${pct(ov.roomRevenue)}</span>
       </div>
       <div style="width:100%; background:var(--dark3); height:8px; border-radius:4px; margin-bottom: 15px">
@@ -530,7 +530,7 @@ async function renderReportsTab() {
       </div>
 
       <div style="display:flex; justify-content:space-between; margin-bottom: 5px">
-        <span>Dịch vụ (F&B): <strong>${(ov.foodRevenue / 1000).toLocaleString()}K</strong></span>
+        <span>Dịch vụ (F&B): <strong>${(ov.foodRevenue).toLocaleString()}K</strong></span>
         <span style="color:var(--muted)">${pct(ov.foodRevenue)}</span>
       </div>
       <div style="width:100%; background:var(--dark3); height:8px; border-radius:4px; margin-bottom: 15px">
@@ -538,7 +538,7 @@ async function renderReportsTab() {
       </div>
 
       <div style="display:flex; justify-content:space-between; margin-bottom: 5px">
-        <span>Phụ thu: <strong>${(ov.surcharge / 1000).toLocaleString()}K</strong></span>
+        <span>Phụ thu: <strong>${(ov.surcharge).toLocaleString()}K</strong></span>
         <span style="color:var(--muted)">${pct(ov.surcharge)}</span>
       </div>
       <div style="width:100%; background:var(--dark3); height:8px; border-radius:4px; margin-bottom: 15px">
@@ -546,7 +546,7 @@ async function renderReportsTab() {
       </div>
       
       <div style="display:flex; justify-content:space-between; margin-bottom: 5px">
-        <span>Giảm giá: <strong style="color:#f87171">-${(ov.discount / 1000).toLocaleString()}K</strong></span>
+        <span>Giảm giá: <strong style="color:#f87171">-${(ov.discount).toLocaleString()}K</strong></span>
       </div>
     `;
 
@@ -591,7 +591,7 @@ async function renderReportsTab() {
               <tr>
                 <td style="font-weight:bold;color:var(--gold)">${r.name}</td>
                 <td>${r.count}</td>
-                <td>${(r.revenue / 1000).toLocaleString()}K</td>
+                <td>${(r.revenue).toLocaleString()}K</td>
               </tr>
             `).join('');
         }
@@ -607,7 +607,7 @@ async function renderReportsTab() {
               <tr>
                 <td style="font-weight:bold;color:#4ade80">${m.name}</td>
                 <td>${m.qty}</td>
-                <td>${(m.revenue / 1000).toLocaleString()}K</td>
+                <td>${(m.revenue).toLocaleString()}K</td>
               </tr>
             `).join('');
         }
