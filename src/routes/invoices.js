@@ -10,7 +10,7 @@
 const router  = require('express').Router();
 const { body } = require('express-validator');
 const { validate }    = require('../middleware/validate');
-const { requireAdmin } = require('../middleware/auth');
+const { requireStaff } = require('../middleware/auth');
 const supabase         = require('../lib/supabase');
 
 // ── Helper: tính tiền phòng từ pricing table ──
@@ -73,7 +73,7 @@ function calcSurcharge(room, people) {
 }
 
 // ── GET /api/invoices/admin — Admin: danh sách hoá đơn ──
-router.get('/admin', requireAdmin, async (req, res) => {
+router.get('/admin', requireStaff, async (req, res) => {
   try {
     const { sortBy = 'newest' } = req.query;
     let query = supabase
@@ -130,6 +130,11 @@ router.post('/',
     const allItems   = orders?.flatMap(o => o.order_items) || [];
     const foodAmount = allItems.reduce((s, i) => s + i.amount, 0);
     const surcharge  = calcSurcharge(booking.rooms, booking.people) + parseInt(extraSurcharge);
+
+    const totalBeforeDiscount = roomAmount + foodAmount + surcharge;
+    if (parseInt(discount) > totalBeforeDiscount) {
+      return res.status(400).json({ error: `Chiết khấu (${discount}k) không được vượt quá tổng tiền (${totalBeforeDiscount}k)` });
+    }
 
     const { data: invoice, error: invErr } = await supabase
       .from('invoices')
@@ -201,7 +206,7 @@ router.post('/',
 );
 
 // ── GET /api/invoices/:id — Chi tiết hoá đơn ──
-router.get('/:id', requireAdmin, async (req, res) => {
+router.get('/:id', requireStaff, async (req, res) => {
   const { data, error } = await supabase
     .from('invoices')
     .select(`
@@ -219,7 +224,7 @@ router.get('/:id', requireAdmin, async (req, res) => {
 });
 
 // ── PATCH /api/invoices/:id — Cập nhật thanh toán ──
-router.patch('/:id', requireAdmin,
+router.patch('/:id', requireStaff,
   body('paymentMethod').optional().isIn(['cash','transfer','mixed']),
   body('paymentStatus').optional().isIn(['unpaid','deposit','paid']),
   body('depositAmount').optional().isInt({ min: 0 }),
@@ -231,7 +236,17 @@ router.patch('/:id', requireAdmin,
     if (req.body.paymentMethod !== undefined) updates.payment_method = req.body.paymentMethod;
     if (req.body.paymentStatus !== undefined) updates.payment_status = req.body.paymentStatus;
     if (req.body.depositAmount !== undefined) updates.deposit_amount = parseInt(req.body.depositAmount);
-    if (req.body.discount      !== undefined) updates.discount       = parseInt(req.body.discount);
+    if (req.body.discount      !== undefined) {
+      const { data: currentInv } = await supabase
+        .from('invoices').select('room_amount, food_amount, surcharge').eq('id', req.params.id).single();
+      if (currentInv) {
+        const totalBefore = currentInv.room_amount + currentInv.food_amount + currentInv.surcharge;
+        if (parseInt(req.body.discount) > totalBefore) {
+          return res.status(400).json({ error: `Chiết khấu (${req.body.discount}k) không được vượt quá tổng tiền (${totalBefore}k)` });
+        }
+      }
+      updates.discount = parseInt(req.body.discount);
+    }
     if (req.body.note          !== undefined) updates.note           = req.body.note;
     if (req.body.paymentStatus === 'paid')    updates.paid_at        = new Date();
 

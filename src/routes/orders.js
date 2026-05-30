@@ -16,7 +16,7 @@
 const router  = require('express').Router();
 const { body, query: qv } = require('express-validator');
 const { validate }    = require('../middleware/validate');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { requireAuth, requireStaff } = require('../middleware/auth');
 const supabase        = require('../lib/supabase');
 
 // ── POST /api/orders/qr — Khách tự đặt qua QR ──
@@ -27,13 +27,18 @@ router.post('/qr', async (req, res) => {
       return res.status(400).json({ error: 'Thiếu thông tin đặt món' });
 
     const { data: bookings, error: bkErr } = await supabase
-      .from('bookings').select('id')
-      .eq('room_id', room_id).eq('status', 'confirmed');
+      .from('bookings').select('id, status, booking_date')
+      .eq('room_id', room_id).in('status', ['confirmed', 'in_use']);
     if (bkErr) throw bkErr;
     if (!bookings?.length)
       return res.status(403).json({ error: 'Phòng hiện không có khách hoặc chưa được nhận.' });
 
-    const booking = bookings[0];
+    // Ưu tiên 1: booking đang 'in_use' (đang chơi)
+    let booking = bookings.find(b => b.status === 'in_use');
+    // Ưu tiên 2: booking 'confirmed'
+    if (!booking) {
+      booking = bookings.find(b => b.status === 'confirmed');
+    }
     const menuIds = items.map(i => i.menu_item_id);
     const { data: menuData } = await supabase
       .from('menu_items').select('id, price, name').in('id', menuIds);
@@ -64,7 +69,7 @@ router.post('/qr', async (req, res) => {
 });
 
 // ── GET /api/orders/admin — Admin: xem orders đang chờ duyệt ──
-router.get('/admin', requireAdmin, async (req, res) => {
+router.get('/admin', requireStaff, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('orders')
@@ -79,7 +84,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
 });
 
 // ── PATCH /api/orders/admin/:id — Admin duyệt order ──
-router.patch('/admin/:id', requireAdmin, async (req, res) => {
+router.patch('/admin/:id', requireStaff, async (req, res) => {
   try {
     const { error } = await supabase
       .from('orders').update({ status: 'closed' }).eq('id', req.params.id);
@@ -91,7 +96,7 @@ router.patch('/admin/:id', requireAdmin, async (req, res) => {
 });
 
 // ── GET /api/orders?bookingId= — Admin: lấy tất cả orders của 1 booking ──
-router.get('/', requireAdmin,
+router.get('/', requireStaff,
   qv('bookingId').notEmpty().withMessage('Thiếu bookingId'),
   validate,
   async (req, res) => {
@@ -114,7 +119,7 @@ router.get('/', requireAdmin,
 );
 
 // ── POST /api/orders — Admin tạo lượt gọi mới ──
-router.post('/', requireAdmin,
+router.post('/', requireStaff,
   body('bookingId').notEmpty().withMessage('Thiếu bookingId'),
   body('note').optional().isString(),
   validate,
@@ -137,7 +142,7 @@ router.post('/', requireAdmin,
 );
 
 // ── POST /api/orders/:id/items — Admin thêm món vào lượt ──
-router.post('/:id/items', requireAdmin,
+router.post('/:id/items', requireStaff,
   body('menuItemId').notEmpty().withMessage('Thiếu menuItemId'),
   body('quantity').isInt({ min: 1 }).withMessage('Số lượng tối thiểu 1'),
   body('variant').optional().isString(),
@@ -170,7 +175,7 @@ router.post('/:id/items', requireAdmin,
 );
 
 // ── PATCH /api/orders/:id/items/:itemId — Admin sửa món ──
-router.patch('/:id/items/:itemId', requireAdmin,
+router.patch('/:id/items/:itemId', requireStaff,
   body('quantity').optional().isInt({ min: 1 }),
   body('note').optional().isString(),
   validate,
@@ -192,7 +197,7 @@ router.patch('/:id/items/:itemId', requireAdmin,
 );
 
 // ── DELETE /api/orders/:id/items/:itemId — Admin xoá món ──
-router.delete('/:id/items/:itemId', requireAdmin, async (req, res) => {
+router.delete('/:id/items/:itemId', requireStaff, async (req, res) => {
   const { data: order } = await supabase
     .from('orders').select('status').eq('id', req.params.id).single();
   if (order?.status === 'closed')
@@ -204,7 +209,7 @@ router.delete('/:id/items/:itemId', requireAdmin, async (req, res) => {
 });
 
 // ── PATCH /api/orders/:id/close — Admin chốt lượt ──
-router.patch('/:id/close', requireAdmin, async (req, res) => {
+router.patch('/:id/close', requireStaff, async (req, res) => {
   const { data, error } = await supabase
     .from('orders').update({ status: 'closed' }).eq('id', req.params.id).select().single();
   if (error) return res.status(500).json({ error: error.message });

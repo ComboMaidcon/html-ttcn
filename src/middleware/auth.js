@@ -20,6 +20,15 @@ function requireAdmin(req, res, next) {
   });
 }
 
+function requireStaff(req, res, next) {
+  requireAuth(req, res, () => {
+    if (req.admin.role !== 'admin' && req.admin.role !== 'superadmin' && req.admin.role !== 'staff')
+      return res.status(403).json({ error: 'Không có quyền truy cập chức năng này' });
+    next();
+  });
+}
+
+// Giữ từ files.zip — linh hoạt hơn khi cần phân quyền cụ thể
 function requireRole(...roles) {
   return (req, res, next) => {
     requireAuth(req, res, () => {
@@ -30,4 +39,4 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { requireAuth, requireAdmin, requireRole };
+module.exports = { requireAuth, requireAdmin, requireStaff, requireRole };

@@ -2,11 +2,11 @@
 const router = require('express').Router();
 const { body, query: qv } = require('express-validator');
 const { validate }    = require('../middleware/validate');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { requireAuth, requireStaff } = require('../middleware/auth');
 const supabase = require('../lib/supabase');
 
 // GET /api/customers — admin: tìm kiếm khách hàng
-router.get('/', requireAdmin, async (req, res) => {
+router.get('/', requireStaff, async (req, res) => {
   const { phone, name, page = 1, limit = 20 } = req.query;
   const from = (parseInt(page) - 1) * parseInt(limit);
   const to   = from + parseInt(limit) - 1;
@@ -23,7 +23,7 @@ router.get('/', requireAdmin, async (req, res) => {
 });
 
 // GET /api/customers/lookup?phone= — tìm nhanh theo SĐT
-router.get('/lookup', requireAdmin,
+router.get('/lookup', requireStaff,
   qv('phone').matches(/^0\d{9}$/).withMessage('Số điện thoại không hợp lệ'),
   validate,
   async (req, res) => {
@@ -35,7 +35,7 @@ router.get('/lookup', requireAdmin,
 );
 
 // GET /api/customers/:id — admin: xem chi tiết kèm lịch sử booking
-router.get('/:id', requireAdmin, async (req, res) => {
+router.get('/:id', requireStaff, async (req, res) => {
   const { data, error } = await supabase
     .from('customers')
     .select('*, bookings(id, booking_date, room_id, status, start_time, end_time)')
@@ -67,7 +67,7 @@ router.post('/',
 );
 
 // PATCH /api/customers/:id — admin
-router.patch('/:id', requireAdmin,
+router.patch('/:id', requireStaff,
   body('name').optional().trim().notEmpty(),
   body('phone').optional().matches(/^0\d{9}$/),
   body('source').optional().isIn(['call','walk-in','facebook','zalo','website']),

@@ -1,7 +1,7 @@
 const router  = require('express').Router();
 const { body, query: qv } = require('express-validator');
 const { validate }    = require('../middleware/validate');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { requireAuth, requireStaff } = require('../middleware/auth');
 const supabase        = require('../lib/supabase');
 
 // Helper chuyển đổi giờ
@@ -36,7 +36,7 @@ router.get('/', async (req, res) => {
 });
 
 // ── GET /api/bookings/admin — admin: full data có phân trang ──
-router.get('/admin', requireAdmin, async (req, res) => {
+router.get('/admin', requireStaff, async (req, res) => {
   const { date, status, customerId, page = 1, limit = 20 } = req.query;
   const from = (parseInt(page) - 1) * parseInt(limit);
   const to   = from + parseInt(limit) - 1;
@@ -55,7 +55,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
 });
 
 // ── GET /api/bookings/:id — admin: chi tiết kèm orders + invoice ──
-router.get('/:id', requireAdmin, async (req, res) => {
+router.get('/:id', requireStaff, async (req, res) => {
   const { data, error } = await supabase
     .from('bookings')
     .select(`
@@ -169,7 +169,7 @@ router.post('/',
 );
 
 // ── PATCH /api/bookings/:id/status — admin: đổi trạng thái ──
-router.patch('/:id/status', requireAdmin,
+router.patch('/:id/status', requireStaff,
   body('status').isIn(['pending','confirmed','in_use','cancelled','completed']).withMessage('Status không hợp lệ'),
   validate,
   async (req, res) => {
@@ -185,7 +185,7 @@ router.patch('/:id/status', requireAdmin,
 );
 
 // ── PATCH /api/bookings/:id — admin: sửa giờ / số người / ghi chú ──
-router.patch('/:id', requireAdmin,
+router.patch('/:id', requireStaff,
   body('startHour').optional().isFloat({ min: 9, max: 25.5 }),
   body('endHour').optional().isFloat({ min: 9.5, max: 26 }),
   body('people').optional().isInt({ min: 1, max: 10 }),
@@ -253,7 +253,7 @@ router.patch('/:id', requireAdmin,
 );
 
 // ── DELETE /api/bookings/:id — chỉ superadmin ──
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', requireStaff, async (req, res) => {
   if (req.admin.role !== 'superadmin')
     return res.status(403).json({ error: 'Chỉ superadmin mới có thể xoá booking' });
   const { error } = await supabase.from('bookings').delete().eq('id', req.params.id);
