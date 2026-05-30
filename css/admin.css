@@ -104,6 +104,7 @@ body { background:var(--black); }
 /* ── Edit modal ── */
 .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(4px); z-index:900; align-items:center; justify-content:center; }
 .modal-overlay.open { display:flex; }
+.modal-overlay.active { display:flex; }
 .modal { background:var(--dark2); border:1px solid rgba(245,197,24,.18); border-radius:var(--radius); padding:2rem; width:100%; max-width:480px; }
 .modal-title { font-family:'Kanit',sans-serif; font-weight:800; font-size:1rem; margin-bottom:1.5rem; color:var(--gold); }
 .modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
