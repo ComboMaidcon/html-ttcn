@@ -87,4 +87,46 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   res.json({ message: 'Đã xoá' });
 });
 
+const multer = require('multer');
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // tối đa 2MB
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Chỉ chấp nhận file ảnh'));
+    cb(null, true);
+  },
+});
+
+// POST /api/menu/:id/image — admin, upload ảnh cho 1 món
+router.post('/:id/image', requireAdmin, upload.single('image'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Thiếu file ảnh' });
+
+  const ext = req.file.originalname.split('.').pop();
+  const fileName = `${req.params.id}-${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('menu-images')
+    .upload(fileName, req.file.buffer, {
+      contentType: req.file.mimetype,
+      upsert: true,
+    });
+  if (uploadError) return res.status(500).json({ error: uploadError.message });
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('menu-images')
+    .getPublicUrl(fileName);
+
+  const { data, error } = await supabase
+    .from('menu_items')
+    .update({ image_url: publicUrl })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+
+  res.json({ item: data });
+});
+
 module.exports = router;
+
+

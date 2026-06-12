@@ -185,6 +185,14 @@ async function openEdit(id) {
   document.getElementById('eCat').value      = item.cat;
   document.getElementById('eDesc').value     = item.desc || '';
   document.getElementById('eVariants').value = item.variants || '';
+  document.getElementById('eImage').value = '';
+  const preview = document.getElementById('eImagePreview');
+  if (item.image_url) {
+    preview.src = item.image_url;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
   document.getElementById('editModal').classList.add('open');
 }
 
@@ -209,6 +217,10 @@ async function doSaveEdit() {
       name, price, tab, cat,
       desc: desc||undefined, variants: variants||undefined
     });
+
+    const file = document.getElementById('eImage').files[0];
+    if (file) await apiUploadMenuImage(editingId, file);
+
     closeModal();
     await render();
     showToast(`✅ Đã cập nhật "${name}"`);

@@ -9,7 +9,10 @@ const ROOMS = [
     emoji:'🎮', badge:'Small', badgeClass:'badge-white',
     desc:'Phòng Small private tầng 6 — ấm cúng cho 1–2 người.',
     capacity:'1–2 người', features:['Small','1–2 người','Boardgame free','Tầng 6'],
-    price:59, gradient:'linear-gradient(135deg,#1a1000,#0c0c0c)' },
+    price:59, gradient:'linear-gradient(135deg,#1a1000,#0c0c0c)',
+    // Ảnh 360° (equirectangular, tỉ lệ 2:1) — upload lên Supabase Storage
+    // rồi dán Public URL vào đây. Để trống/xóa dòng này nếu phòng chưa có ảnh.
+    panorama:'https://xaavrtvwsovwdqmpuxdi.supabase.co/storage/v1/object/public/room-images/room_360.jpg' },
   { id:'t6-room2', name:'Room 2', floor:6, type:'medium-deluxe',
     emoji:'⭐', badge:'Medium Deluxe', badgeClass:'badge-gold',
     desc:'Phòng Medium Deluxe tầng 6 — rộng rãi cho 1–4 người. Phổ biến nhất!',

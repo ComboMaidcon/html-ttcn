@@ -16,7 +16,9 @@ function initForm() {
   startSel.value = 14;
 
   // Ngày mặc định = hôm nay
-  document.getElementById('f-date').value = todayStr();
+  const dateInput = document.getElementById('f-date');
+  dateInput.value = todayStr();
+  dateInput.min   = todayStr();  // chặn chọn ngày quá khứ
 
   // Duration options
   const durSel = document.getElementById('f-duration');
@@ -266,6 +268,9 @@ async function submitBooking() {
   if (!date) {
     showFormAlert('Vui lòng chọn ngày đến');
     hasError = true;
+  } else if (date < todayStr()) {
+    showFormAlert('Không thể đặt phòng cho ngày đã qua');
+    hasError = true;
   }
   if (!roomId) {
     showFieldError('f-room','err-room','Vui lòng chọn phòng');
@@ -304,20 +309,15 @@ async function submitBooking() {
     btn.textContent = 'Đang đặt phòng...';
 
     // Convert float hour → HH:MM cho API mới
-    const startTime = formatHour(start).replace(' (+1)','');
-    const endTime   = formatHour(end).replace(' (+1)','');
-    const isOvernight = end >= 24;
-
     const room = ROOMS.find(r => r.id === roomId);
 
     await apiCreateBooking({
-      customerName:  name,
-      customerPhone: phone,
       roomId,
-      bookingDate:   date,
-      startTime,
-      endTime,
-      isOvernight,
+      date,
+      startHour: start,
+      endHour:   end,
+      name,
+      phone,
       people,
       note,
       channel: 'website',

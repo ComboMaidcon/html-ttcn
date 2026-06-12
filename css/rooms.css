@@ -175,3 +175,50 @@
 .room-price { background:var(--grad-gold); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
 .floor-tab.active { background:var(--grad-gold); }
 .btn-check { background:var(--grad-gold); }
+/* ════════════════════════════════════════
+   PANORAMA 360° VIEWER MODAL
+   ════════════════════════════════════════ */
+.pano-modal {
+  background: var(--card, #111);
+  border-radius: 14px;
+  width: min(960px, 96vw);
+  max-height: 92vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(200,168,75,.15);
+}
+.pano-viewer {
+  width: 100%;
+  height: min(60vh, 540px);
+  background: #000;
+}
+.pano-hint {
+  padding: .7rem 1.5rem;
+  font-size: .8rem;
+  color: var(--muted, #999);
+  text-align: center;
+}
+
+/* Nút "Xem 360°" trên room card */
+.btn-pano {
+  background: rgba(200,168,75,.12);
+  border: 1px solid rgba(200,168,75,.35);
+  color: #d4af6a;
+  border-radius: 6px;
+  padding: .35rem .7rem;
+  font-size: .75rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  transition: background .15s, color .15s;
+}
+.btn-pano:hover {
+  background: rgba(200,168,75,.25);
+  color: #fff;
+}
+
+@media (max-width: 600px) {
+  .pano-viewer { height: 50vh; }
+}

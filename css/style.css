@@ -85,7 +85,7 @@ p  { line-height:1.7; color:var(--muted); font-variation-settings:'wght' 400,'op
 .label-tag.cyan::before { background:var(--cyan); }
 
 /* ── Navigation ──────────────────────────────── */
-nav { position:fixed; top:0; left:0; right:0; z-index:800; display:flex; align-items:center; justify-content:space-between; padding:0 56px; height:72px; transition:background var(--transition), border-color var(--transition); }
+nav { position:fixed; top:0; left:0; right:0; z-index:800; display:flex; align-items:center; justify-content:space-between; flex-wrap:nowrap; padding:0 40px; height:72px; transition:background var(--transition), border-color var(--transition); }
 nav.scrolled { background:rgba(8,8,8,.96); border-bottom:1px solid rgba(200,168,75,.15); backdrop-filter:blur(20px); }
 .logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
 .logo-bar { width:4px; height:24px; display:inline-block; background:linear-gradient(180deg, var(--m-blue-light) 0 33%, var(--m-blue-dark) 33% 66%, var(--m-red) 66% 100%); }
@@ -95,8 +95,8 @@ nav.scrolled { background:rgba(8,8,8,.96); border-bottom:1px solid rgba(200,168,
 .logo-text { display:flex; flex-direction:column; line-height:1; gap:1px; }
 .logo-name { font-family:var(--font-display); font-size:1.25rem; letter-spacing:3px; color:var(--white); text-transform:uppercase; }
 .logo-sub { font-family:var(--font-condensed); font-size:.55rem; font-weight:700; letter-spacing:4px; color:var(--gold); text-transform:uppercase; }
-.nav-links { display:flex; list-style:none; gap:2.5rem; align-items:center; }
-.nav-links a { font-family:var(--font-condensed); font-size:.78rem; font-weight:700; letter-spacing:2.5px; font-variation-settings:'wght' 700,'opsz' 10; text-transform:uppercase; color:var(--muted); transition:color var(--transition); position:relative; }
+.nav-links { display:flex; list-style:none; gap:1.6rem; align-items:center; flex-wrap:nowrap; white-space:nowrap; }
+.nav-links a { font-family:var(--font-condensed); font-size:.75rem; font-weight:700; letter-spacing:1.8px; font-variation-settings:'wght' 700,'opsz' 10; text-transform:uppercase; color:var(--muted); transition:color var(--transition); position:relative; }
 .nav-links a::after { content:''; position:absolute; bottom:-4px; left:0; width:0; height:1px; background:var(--gold); transition:width var(--transition); }
 .nav-links a:hover, .nav-links a.active { color:var(--white); }
 .nav-links a:hover::after, .nav-links a.active::after { width:100%; }

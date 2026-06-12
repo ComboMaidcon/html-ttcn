@@ -44,6 +44,21 @@ function placeholderSvg(category, name) {
   return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><rect width='120' height='120' fill='${encodeURIComponent(color)}'/><text x='60' y='68' font-family='Arial' font-size='28' font-weight='bold' fill='white' text-anchor='middle'>${encodeURIComponent(initials)}</text></svg>`;
 }
 
+/* ── Lấy danh sách món trực tiếp từ API ──────
+   Không qua apiGetMenu() để tránh phụ thuộc vào
+   mapping ở api.js — đảm bảo image_url luôn
+   được giữ nguyên từ response của backend. ──── */
+async function fetchMenuItems(tab) {
+  const qs  = tab ? `?tab=${tab}` : '';
+  const res = await apiFetch(`/api/menu${qs}`);
+  const items = res.items || res || [];
+  if (!Array.isArray(items)) {
+    console.warn('[menu] Unexpected /api/menu response:', res);
+    return [];
+  }
+  return items;
+}
+
 /* ── Tabs ──────────────────────────────────── */
 function bindTabs() {
   document.getElementById('menuTabs')?.addEventListener('click', e => {
@@ -100,21 +115,21 @@ async function renderMenu() {
 
   let items = [];
   try {
-    const data = await apiGetMenu(activeTab);
-    items = data.items || data || [];
-  } catch {
+    items = await fetchMenuItems(activeTab);
+  } catch (err) {
+    console.error('[menu] fetchMenuItems failed:', err);
     if (typeof getMenuItems === 'function')
       items = getMenuItems().filter(i => (i.tab || i.type) === activeTab);
   }
 
-  // Map fields
+  // Map fields (giữ nguyên image_url từ API, không phụ thuộc apiGetMenu)
   items = items.map(i => ({
     id:           i.id,
     name:         i.name,
     price:        i.price,
     category:     i.category || i.cat,
     variants:     i.variants || i.variant || null,
-    sort_order:   i.sort_order || i.sortOrder || 0,
+    sort_order:   i.sort_order ?? i.sortOrder ?? 0,
     is_available: i.is_available !== false && i.available !== false,
     image_url:    i.image_url || i.imageUrl || null,
   }));

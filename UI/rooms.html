@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1/dist/driver.css">
 <link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
 <link rel="stylesheet" href="../css/rooms.css">
 </head>
 <body>
@@ -80,6 +81,19 @@
   </div>
 </div>
 
+<!-- Panorama 360° viewer -->
+<div class="modal-backdrop" id="panoModalBackdrop" onclick="if(event.target===this)closePanorama()">
+  <div class="pano-modal" id="panoModal">
+    <div class="rm-header">
+      <div class="rm-title" id="panoTitle">Xem phòng</div>
+      <button class="rm-close" onclick="closePanorama()">&#x2715;</button>
+    </div>
+    <div id="panoViewer" class="pano-viewer"></div>
+    <div class="pano-hint">Xoay điện thoại hoặc kéo chuột để nhìn quanh phòng</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
 <script src="../js/config.js" defer></script>
 <script src="../js/api.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/driver.js@1/dist/driver.iife.js"></script>

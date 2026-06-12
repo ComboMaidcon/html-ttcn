@@ -268,7 +268,10 @@ function renderRoomCard(room, date) {
       <div class="room-tags">${tags}</div>
       <div class="room-footer2">
         <div class="room-price">${room.price}K <sub>/ giờ </sub></div>
-        <button class="btn-sm" onclick="goBook('${room.id}')">Đặt ngay →</button>
+        <div style="display:flex;gap:.4rem">
+          ${room.panorama ? `<button class="btn-pano" onclick="event.stopPropagation();openPanorama('${room.id}')">🌐 360°</button>` : ''}
+          <button class="btn-sm" onclick="goBook('${room.id}')">Đặt ngay →</button>
+        </div>
       </div>
     </div>
   </div>`;
@@ -433,3 +436,61 @@ function fmtDisplayDate(str) {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeRoomModal();
 });
+
+
+/* ════════════════════════════════════════
+   PANORAMA 360° VIEWER (Pannellum)
+   ════════════════════════════════════════ */
+let panoViewerInstance = null;
+
+function openPanorama(roomId) {
+  const room = ROOMS.find(r => r.id === roomId);
+  if (!room || !room.panorama) {
+    alert('Phòng này chưa có ảnh 360°.');
+    return;
+  }
+
+  document.getElementById('panoTitle').textContent =
+    ` ${room.emoji || ''} ${room.name} — Tầng ${room.floor} (360°)`;
+
+  // Hủy viewer cũ trước khi tạo mới (tránh leak/canvas chồng lên nhau)
+  if (panoViewerInstance) {
+    panoViewerInstance.destroy();
+    panoViewerInstance = null;
+  }
+
+  if (typeof pannellum === 'undefined') {
+    console.error('[rooms] Pannellum chưa được tải. Kiểm tra script CDN.');
+    alert('Không thể tải trình xem 360°. Vui lòng kiểm tra kết nối mạng.');
+    return;
+  }
+
+  panoViewerInstance = pannellum.viewer('panoViewer', {
+    type: 'equirectangular',
+    panorama: room.panorama,
+    autoLoad: true,
+    showZoomCtrl: true,
+    showFullscreenCtrl: true,
+    compass: false,
+    // Bật điều khiển bằng cảm biến xoay điện thoại 
+    orientationOnByDefault: false,
+    hfov: 100,
+    minHfov: 50,
+    maxHfov: 120,
+    pitch: 0,
+    minPitch: -90,
+    maxPitch: 90,
+  });
+
+  document.getElementById('panoModalBackdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePanorama() {
+  document.getElementById('panoModalBackdrop').classList.remove('open');
+  document.body.style.overflow = '';
+  if (panoViewerInstance) {
+    panoViewerInstance.destroy();
+    panoViewerInstance = null;
+  }
+}

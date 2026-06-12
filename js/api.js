@@ -80,14 +80,18 @@ async function apiGetMenu(tab = null) {
   const qs  = tab ? `?tab=${tab}` : '';
   const res = await apiFetch(`/api/menu${qs}`);
   return res.items.map(i => ({
-    id:        i.id,
-    tab:       i.tab,
-    cat:       i.category,
-    name:      i.name,
-    price:     i.price,
-    desc:      i.description,
-    variants:  i.variants,
-    available: i.is_available,
+    id:           i.id,
+    tab:          i.tab,
+    cat:          i.category,
+    category:     i.category,
+    name:         i.name,
+    price:        i.price,
+    desc:         i.description,
+    variants:     i.variants,
+    available:    i.is_available,
+    is_available: i.is_available,
+    image_url:    i.image_url,
+    sort_order:   i.sort_order,
   }));
 }
 
