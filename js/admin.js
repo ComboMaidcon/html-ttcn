@@ -296,11 +296,53 @@ function initAdminTabs() {
       if (btn.dataset.tab === 'reviews')  renderReviewsTab();
       if (btn.dataset.tab === 'reports')  renderReportsTab();
       if (btn.dataset.tab === 'invoices') renderInvoicesTab();
+      if (btn.dataset.tab === 'customers') renderCustomersTab();
       if (btn.dataset.tab === 'kitchen')  renderKitchenTab();
       if (btn.dataset.tab === 'pos')      initPosTab();
     });
   });
   renderBookingsTab(); // Default tab
+}
+
+/* ── Customers Tab ── */
+async function renderCustomersTab() {
+  const wrap = document.getElementById('customersTableBody');
+  if (!wrap) return;
+  wrap.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Đang tải...</td></tr>';
+  
+  const searchQ = document.getElementById('custSearch').value.trim().toLowerCase();
+
+  try {
+    const res = await apiGetCustomersStats();
+    let stats = res.customers || [];
+    
+    if (searchQ) {
+      stats = stats.filter(c => 
+        (c.name || '').toLowerCase().includes(searchQ) || 
+        (c.phone || '').includes(searchQ)
+      );
+    }
+
+    if (stats.length === 0) {
+      wrap.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Không có dữ liệu.</td></tr>';
+      return;
+    }
+
+    wrap.innerHTML = stats.map(c => `
+      <tr>
+        <td style="font-weight:bold;">
+          ${c.name || 'Khách'} 
+          ${c.is_vip ? '<span style="font-size:0.75rem; background:var(--gold); color:#000; padding:1px 4px; border-radius:4px; font-weight:bold; margin-left:4px;">VIP</span>' : ''}
+        </td>
+        <td>${c.phone || 'N/A'}</td>
+        <td style="text-align:center; font-weight:bold;">${c.invoice_count}</td>
+        <td style="text-align:center;">${c.total_hours.toFixed(1)}h</td>
+        <td style="text-align:right; color:#4ade80;">${c.total_spent.toLocaleString()} K</td>
+      </tr>
+    `).join('');
+  } catch(err) {
+    wrap.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#f87171">Lỗi: ${err.message}</td></tr>`;
+  }
 }
 
 /* ── Bookings Tab ── */
@@ -323,7 +365,7 @@ async function renderBookingsTab() {
           ${b.status === 'confirmed' ? `<br><a href="/UI/qr-order.html?room=${b.room_id}" target="_blank" style="font-size:.7rem;color:#4ade80;text-decoration:none;display:inline-block;margin-top:4px;">🛒 Đặt món ngay</a>` : ''}
         </div>
         <div>
-          <div class="ir-name">${b.customers?.name || 'Khách'}</div>
+          <div class="ir-name">${b.customers?.name || 'Khách'} ${b.customers?.is_vip ? '<span style="font-size:0.75rem; background:var(--gold); color:#000; padding:1px 4px; border-radius:4px; font-weight:bold; margin-left:4px;">VIP</span>' : ''}</div>
           <div class="ir-sub">${b.customers?.phone || ''}</div>
         </div>
         <div><span class="status-badge ${b.status}">${b.status}</span></div>
@@ -1197,6 +1239,19 @@ async function posShowCheckout() {
      document.getElementById('coFoodAmount').innerText = res.foodAmount.toLocaleString() + ' K';
      document.getElementById('coTotalAmount').innerText = res.totalBeforeDiscount.toLocaleString() + ' K';
      posState.checkoutTotal = res.totalBeforeDiscount; // Lưu lại để tính % giảm giá
+     
+     const vipNotice = document.getElementById('coVipNotice');
+     if (res.customer && res.customer.is_vip) {
+         if (vipNotice) {
+            vipNotice.innerText = `Khách hàng VIP (Được giảm ${res.customer.vip_discount_percent}%)`;
+            vipNotice.style.display = 'block';
+         }
+         if (!document.getElementById('coDiscountId').value) {
+            document.getElementById('coDiscount').value = Math.round(res.totalBeforeDiscount * (res.customer.vip_discount_percent / 100));
+         }
+     } else {
+         if (vipNotice) vipNotice.style.display = 'none';
+     }
   }).catch(err => {
      document.getElementById('coRoomAmount').innerText = 'Lỗi tính tiền';
      document.getElementById('coTotalAmount').innerText = 'Lỗi tính tiền';

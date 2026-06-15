@@ -110,7 +110,7 @@ router.get('/preview/:bookingId', requireStaff, async (req, res) => {
     const { bookingId } = req.params;
     const { data: booking, error: bErr } = await supabase
       .from('bookings')
-      .select('*, rooms(*), customers(name, phone)')
+      .select('*, rooms(*), customers(id, name, phone)')
       .eq('id', bookingId).single();
     if (bErr || !booking) return res.status(404).json({ error: 'Không tìm thấy booking' });
 
@@ -125,11 +125,38 @@ router.get('/preview/:bookingId', requireStaff, async (req, res) => {
     const foodAmount = allItems.reduce((s, i) => s + i.amount, 0);
     const surcharge  = calcSurcharge(booking.rooms, booking.people);
 
+    // Tính tổng giờ chơi để xét VIP
+    let total_hours = 0;
+    if (booking.customer_id) {
+      const { data: pastBookings } = await supabase
+        .from('bookings')
+        .select('start_time, end_time')
+        .eq('customer_id', booking.customer_id)
+        .eq('status', 'completed');
+      
+      if (pastBookings) {
+        pastBookings.forEach(b => {
+          const start = new Date(`1970-01-01T${b.start_time}`);
+          const end = new Date(`1970-01-01T${b.end_time}`);
+          let diff = (end - start) / 3600000;
+          if (diff < 0) diff += 24; // Qua đêm
+          total_hours += diff;
+        });
+      }
+    }
+
+    const is_vip = total_hours >= 20;
+
     res.json({
       roomAmount,
       foodAmount,
       surcharge,
-      totalBeforeDiscount: roomAmount + foodAmount + surcharge
+      totalBeforeDiscount: roomAmount + foodAmount + surcharge,
+      customer: booking.customers ? {
+        ...booking.customers,
+        is_vip,
+        vip_discount_percent: 10 // Cố định 10% cho VIP auto
+      } : null
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -267,6 +267,13 @@ async function apiPreviewInvoice(bookingId) {
 }
 
 /* ════════════════════════════════
+   CUSTOMERS
+   ════════════════════════════════ */
+async function apiGetCustomersStats() { 
+  return apiFetch('/api/customers/stats'); 
+}
+
+/* ════════════════════════════════
    DISCOUNTS
    ════════════════════════════════ */
 async function apiGetDiscounts() {

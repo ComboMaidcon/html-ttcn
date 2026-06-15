@@ -45,6 +45,7 @@
       <div class="admin-sidebar">
         <button class="sidebar-tab"        data-tab="reports">📊 Báo cáo</button>
         <button class="sidebar-tab"        data-tab="invoices">🧾 Hoá đơn</button>
+        <button class="sidebar-tab"        data-tab="customers">👥 Khách hàng</button>
         <button class="sidebar-tab active" data-tab="bookings">📅 Đặt phòng</button>
         <button class="sidebar-tab"        data-tab="kitchen">🍳 Bếp / Đồ ăn</button>
         <button class="sidebar-tab"        data-tab="menu">🍔 Thực đơn</button>
@@ -206,6 +207,31 @@
                 </tr>
               </thead>
               <tbody id="invoicesList"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ================= CUSTOMERS TAB ================= -->
+        <div class="admin-tab-content" id="tab-customers">
+          <div class="tab-header">
+            <h2 class="section-title">Quản lý Khách Hàng</h2>
+            <div style="display:flex; gap:10px;">
+              <input type="text" id="custSearch" placeholder="Tìm tên/SĐT..." style="padding:0.5rem; border-radius:4px; border:1px solid #444; background:var(--dark2); color:#fff;" onkeyup="if(event.key==='Enter') renderCustomersTab()">
+              <button class="btn-add" onclick="renderCustomersTab()">🔍 Tìm</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>TÊN KHÁCH</th>
+                  <th>ĐIỆN THOẠI</th>
+                  <th>SỐ HOÁ ĐƠN</th>
+                  <th>GIỜ CHƠI</th>
+                  <th>TỔNG CHI TIÊU</th>
+                </tr>
+              </thead>
+              <tbody id="customersTableBody"></tbody>
             </table>
           </div>
         </div>
@@ -526,6 +552,7 @@
           <span class="fl">Đã giảm (K)</span>
           <input id="coDiscount" type="number" value="0" min="0" readonly style="background:var(--dark3); color: #4ade80;">
           <input type="hidden" id="coDiscountId">
+          <div id="coVipNotice" style="display:none; color:var(--gold); font-size:0.8rem; margin-top:4px;">Khách VIP (Được giảm 10%)</div>
         </div>
         <div class="fg">
           <span class="fl">Phụ thu khác (K)</span>

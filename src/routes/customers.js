@@ -5,6 +5,66 @@ const { validate }    = require('../middleware/validate');
 const { requireAuth, requireStaff } = require('../middleware/auth');
 const supabase = require('../lib/supabase');
 
+// GET /api/customers/stats — Lấy danh sách KH kèm thống kê
+router.get('/stats', requireStaff, async (req, res) => {
+  try {
+    const { data: customers, error } = await supabase
+      .from('customers')
+      .select('*, bookings(status, start_time, end_time, invoices(total_amount))')
+      .order('created_at', { ascending: false });
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    const stats = customers.map(c => {
+      let total_hours = 0;
+      let invoice_count = 0;
+      let total_spent = 0;
+
+      if (c.bookings) {
+        c.bookings.forEach(b => {
+          if (b.status === 'completed') {
+            const start = new Date(`1970-01-01T${b.start_time}`);
+            const end = new Date(`1970-01-01T${b.end_time}`);
+            let diff = (end - start) / 3600000;
+            if (diff < 0) diff += 24; // Qua đêm
+            total_hours += diff;
+          }
+          if (b.invoices) {
+            const invs = Array.isArray(b.invoices) ? b.invoices : [b.invoices];
+            invs.forEach(inv => {
+              invoice_count++;
+              total_spent += inv.total_amount || 0;
+            });
+          }
+        });
+      }
+
+      return {
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        source: c.source,
+        note: c.note,
+        created_at: c.created_at,
+        total_hours,
+        invoice_count,
+        total_spent,
+        is_vip: total_hours >= 20
+      };
+    });
+
+    // Bỏ qua khách hàng có invoice_count === 0 để lọc trùng/bỏ trống
+    const activeStats = stats.filter(c => c.invoice_count > 0);
+
+    // Sắp xếp theo số lượng hoá đơn (nhiều nhất trước)
+    activeStats.sort((a, b) => b.invoice_count - a.invoice_count);
+
+    res.json({ customers: activeStats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/customers — admin: tìm kiếm khách hàng
 router.get('/', requireStaff, async (req, res) => {
   const { phone, name, page = 1, limit = 20 } = req.query;
