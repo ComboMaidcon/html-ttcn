@@ -21,7 +21,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
     // 1. Fetch ALL invoices in the date range with their booking details
     const { data: invoices, error: invErr } = await supabase
       .from('invoices')
-      .select('*, bookings!inner(booking_date, start_time, is_overnight, channel, rooms(name))')
+      .select('*, bookings(booking_date, start_time, is_overnight, channel, rooms(name))')
       .gte('created_at', start + 'T00:00:00Z')
       .lte('created_at', end + 'T23:59:59Z')
       .order('created_at', { ascending: false });
@@ -30,34 +30,48 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
 
     // 2. Filter locally based on advanced custom filters
     const filteredInvoices = invoices.filter(inv => {
-      const b = inv.bookings;
+      const bList = Array.isArray(inv.bookings) ? inv.bookings : (inv.bookings ? [inv.bookings] : []);
+      
+      if (bList.length === 0) {
+          // Các hoá đơn cũ bị mồ côi (không có link tới bookings). Nếu có filter cụ thể thì bỏ qua, nếu chọn "all" thì giữ lại
+          if (channel && channel !== 'all') return false;
+          if (roomName && roomName !== 'all') return false;
+          if (dayOfWeek && dayOfWeek.split(',').length !== 7 && dayOfWeek !== 'none') return false;
+          if (timeOfDay && timeOfDay !== 'all') return false;
+          return true;
+      }
       
       // Filter Channel
-      if (channel && channel !== 'all' && b.channel !== channel) return false;
+      if (channel && channel !== 'all' && !bList.some(b => b.channel === channel)) return false;
       
       // Filter Room
-      if (roomName && roomName !== 'all' && b.rooms?.name !== roomName) return false;
+      if (roomName && roomName !== 'all' && !bList.some(b => b.rooms?.name === roomName)) return false;
       
       // Filter Day of Week
-      if (dayOfWeek && dayOfWeek !== '0,1,2,3,4,5,6') { // if not all checked
+      if (dayOfWeek && dayOfWeek.split(',').length !== 7) { // if not all checked
          if (dayOfWeek === 'none') return false; // if nothing checked
-         const d = new Date(b.booking_date).getDay(); // 0 is Sunday, 1 is Mon...
-         if (!dayOfWeek.split(',').includes(d.toString())) {
-             return false;
-         }
+         if (!bList.some(b => {
+             if (!b.booking_date) return false;
+             const d = new Date(b.booking_date).getDay(); // 0 is Sunday, 1 is Mon...
+             return dayOfWeek.split(',').includes(d.toString());
+         })) return false;
       }
       
       // Filter Time of Day
       if (timeOfDay && timeOfDay !== 'all') {
-         const [h, m] = b.start_time.split(':').map(Number);
-         const startF = h + m/60;
-         let isMorning = startF >= 6 && startF < 17;
-         let isEvening = startF >= 17 && startF < 22;
-         let isNight = startF >= 22 || startF < 6;
-         
-         if (timeOfDay === 'morning' && !isMorning) return false;
-         if (timeOfDay === 'evening' && !isEvening) return false;
-         if (timeOfDay === 'night' && !isNight) return false;
+         if (!bList.some(b => {
+             if (!b.start_time) return false;
+             const [h, m] = b.start_time.split(':').map(Number);
+             const startF = h + m/60;
+             let isMorning = startF >= 6 && startF < 17;
+             let isEvening = startF >= 17 && startF < 22;
+             let isNight = startF >= 22 || startF < 6;
+             
+             if (timeOfDay === 'morning' && isMorning) return true;
+             if (timeOfDay === 'evening' && isEvening) return true;
+             if (timeOfDay === 'night' && isNight) return true;
+             return false;
+         })) return false;
       }
       return true;
     });
@@ -68,22 +82,25 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
     let revByDate = {}; // For the trend line
 
     filteredInvoices.forEach(inv => {
-      totalRevenue += inv.total_amount;
+      const totalAmount = inv.room_amount + inv.food_amount + inv.surcharge - inv.discount;
+      
+      totalRevenue += totalAmount;
       roomRevenue += inv.room_amount;
       foodRevenue += inv.food_amount;
       surcharge += inv.surcharge;
       discount += inv.discount;
       
       // Room Performance
-      const rName = inv.bookings.rooms?.name || 'Khác';
+      const bList = Array.isArray(inv.bookings) ? inv.bookings : (inv.bookings ? [inv.bookings] : []);
+      const rName = bList[0]?.rooms?.name || 'Khác';
       if (!roomPerf[rName]) roomPerf[rName] = { count: 0, revenue: 0 };
       roomPerf[rName].count += 1;
-      roomPerf[rName].revenue += inv.total_amount;
+      roomPerf[rName].revenue += totalAmount;
 
       // Revenue by Date
       const date = inv.created_at.split('T')[0];
       if (!revByDate[date]) revByDate[date] = 0;
-      revByDate[date] += inv.total_amount;
+      revByDate[date] += totalAmount;
     });
 
     const totalBookings = filteredInvoices.length;

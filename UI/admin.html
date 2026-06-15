@@ -50,6 +50,7 @@
         <button class="sidebar-tab"        data-tab="menu">🍔 Thực đơn</button>
         <button class="sidebar-tab"        data-tab="rooms">🚪 Phòng</button>
         <button class="sidebar-tab"        data-tab="reviews">⭐ Đánh giá</button>
+        <button class="sidebar-tab"        data-tab="discounts">🎁 Khuyến mãi</button>
         <button class="sidebar-tab"        data-tab="pos" style="margin-top:auto; font-weight:bold; color:var(--gold);">💳 Bán hàng (POS)</button>
       </div>
 
@@ -274,6 +275,26 @@
           </div>
         </div>
 
+        <!-- ================= DISCOUNTS TAB ================= -->
+        <div class="admin-tab-content" id="tab-discounts">
+          <div class="tab-header">
+            <h2>Quản lý Mã Giảm Giá</h2>
+            <button class="btn-add" onclick="showAddDiscountModal()">+ Thêm Mã Mới</button>
+          </div>
+          <div class="items-table-wrap">
+            <div class="it-head discounts-head" style="grid-template-columns: 2fr 3fr 2fr 2fr 2fr 2fr 2fr;">
+              <span>Mã giảm giá</span>
+              <span>Ghi chú</span>
+              <span>Loại giảm</span>
+              <span>Mức giảm</span>
+              <span>Số lượt</span>
+              <span>Hết hạn</span>
+              <span>Hành động</span>
+            </div>
+            <div id="discountsList">Đang tải...</div>
+          </div>
+        </div>
+
         <!-- ================= MENU TAB ================= -->
         <div class="admin-tab-content" id="tab-menu">
 
@@ -477,17 +498,37 @@
           <span class="fl">Phòng đang thanh toán</span>
           <input id="coRoomName" readonly style="background:var(--dark3); border:none; font-weight:bold; color:var(--gold);">
         </div>
+        <div class="fg" style="grid-column:1/-1; display:flex; gap:10px;">
+          <div style="flex:1">
+            <span class="fl">Tiền phòng (Tạm tính)</span>
+            <div id="coRoomAmount" style="font-size: 1.2rem; font-weight: bold; padding: 0.5rem; background: var(--dark3); border-radius: 4px; color: var(--gold);">Đang tính...</div>
+          </div>
+          <div style="flex:1">
+            <span class="fl">Tiền đồ ăn</span>
+            <div id="coFoodAmount" style="font-size: 1.2rem; font-weight: bold; padding: 0.5rem; background: var(--dark3); border-radius: 4px; color: #4ade80;">0 đ</div>
+          </div>
+        </div>
         <div class="fg" style="grid-column:1/-1">
-          <span class="fl">Tổng tiền đồ ăn (Tạm tính)</span>
-          <div id="coFoodAmount" style="font-size: 1.2rem; font-weight: bold; padding: 0.5rem; background: var(--dark3); border-radius: 4px;">0 đ</div>
-          <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;">* Tiền phòng thực tế sẽ được Backend tự động tính chính xác tại thời điểm chốt.</div>
+          <span class="fl">TỔNG CỘNG TẠM TÍNH (Chưa gồm Phụ thu & Giảm giá)</span>
+          <div id="coTotalAmount" style="font-size: 1.5rem; font-weight: bold; padding: 0.5rem; background: rgba(74,222,128,0.1); border-radius: 4px; color: #4ade80; text-align: center;">Đang tính...</div>
+        </div>
+        <div class="fg" style="grid-column:1/-1; display:flex; gap: 10px; align-items: flex-end;">
+          <div style="flex:1">
+            <span class="fl">Mã giảm giá (Voucher)</span>
+            <input id="coDiscountCode" placeholder="Nhập mã (nếu có)">
+          </div>
+          <button class="an-btn" onclick="applyDiscountCode()" style="padding: 10px 15px;">Áp dụng mã</button>
+        </div>
+        <div class="fg" style="grid-column:1/-1">
+          <div id="coValidDiscounts" style="display:flex; gap: 8px; flex-wrap:wrap;"></div>
         </div>
         <div class="fg">
-          <span class="fl">Giảm giá (VNĐ)</span>
-          <input id="coDiscount" type="number" value="0" min="0">
+          <span class="fl">Đã giảm (K)</span>
+          <input id="coDiscount" type="number" value="0" min="0" readonly style="background:var(--dark3); color: #4ade80;">
+          <input type="hidden" id="coDiscountId">
         </div>
         <div class="fg">
-          <span class="fl">Phụ thu khác (VNĐ)</span>
+          <span class="fl">Phụ thu khác (K)</span>
           <input id="coSurcharge" type="number" value="0" min="0">
         </div>
         <div class="fg" style="grid-column:1/-1">
@@ -504,10 +545,50 @@
 
   <div class="toast" id="toast"></div>
 
+  <!-- Add Discount Modal -->
+  <div class="modal-overlay" id="discountModal">
+    <div class="modal">
+      <div class="modal-title">🎁 Thêm Mã Giảm Giá</div>
+      <div class="modal-grid">
+        <div class="fg" style="grid-column:1/-1">
+          <span class="fl">Mã Code (Tối thiểu 4 ký tự) *</span>
+          <input id="dCode" placeholder="VD: SALE50K" style="text-transform: uppercase;">
+        </div>
+        <div class="fg" style="grid-column:1/-1">
+          <span class="fl">Mô tả / Ghi chú</span>
+          <input id="dDesc" placeholder="Giảm 50k cho khách mới">
+        </div>
+        <div class="fg">
+          <span class="fl">Loại giảm giá *</span>
+          <select id="dType">
+            <option value="fixed">Tiền mặt (Ngàn VNĐ)</option>
+            <option value="percent">Phần trăm (%)</option>
+          </select>
+        </div>
+        <div class="fg">
+          <span class="fl">Mức giảm *</span>
+          <input id="dValue" type="number" min="1" placeholder="VD: 50">
+        </div>
+        <div class="fg">
+          <span class="fl">Số lượt tối đa</span>
+          <input id="dMaxUses" type="number" min="1" placeholder="Bỏ trống nếu không giới hạn">
+        </div>
+        <div class="fg">
+          <span class="fl">Ngày hết hạn</span>
+          <input id="dValidUntil" type="date">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="document.getElementById('discountModal').classList.remove('active')">Hủy</button>
+        <button class="btn-save" onclick="doSaveDiscount()">Lưu Mã</button>
+      </div>
+    </div>
+  </div>
+
   <script src="../js/config.js"    defer></script>
-  <script src="../js/api.js"       defer></script>
+  <script src="../js/api.js?v=2"       defer></script>
   <script src="../js/utils.js"      defer></script>
   <script src="../js/menu-data.js"  defer></script>
-  <script src="../js/admin.js"      defer></script>
+  <script src="../js/admin.js?v=9"      defer></script>
 </body>
 </html>

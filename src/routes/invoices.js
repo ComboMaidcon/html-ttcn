@@ -79,17 +79,58 @@ router.get('/admin', requireStaff, async (req, res) => {
     let query = supabase
       .from('invoices')
       .select('*, bookings(*, customers(*), rooms(*)), invoice_items(*)');
-    const sortMap = {
-      newest:  { col: 'created_at',   asc: false },
-      oldest:  { col: 'created_at',   asc: true  },
-      highest: { col: 'total_amount', asc: false },
-      lowest:  { col: 'total_amount', asc: true  },
-    };
-    const s = sortMap[sortBy] || sortMap.newest;
-    query = query.order(s.col, { ascending: s.asc });
+      
+    // Sort created_at in DB
+    query = query.order('created_at', { ascending: sortBy === 'oldest' });
+    
     const { data, error } = await query;
     if (error) throw error;
+    
+    // Calculate total_amount
+    data.forEach(inv => {
+      inv.total_amount = inv.room_amount + inv.food_amount + inv.surcharge - inv.discount;
+    });
+
+    // In-memory sort for total_amount if requested
+    if (sortBy === 'highest') {
+       data.sort((a,b) => b.total_amount - a.total_amount);
+    } else if (sortBy === 'lowest') {
+       data.sort((a,b) => a.total_amount - b.total_amount);
+    }
+
     res.json({ invoices: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/invoices/preview/:bookingId — Xem trước hoá đơn ──
+router.get('/preview/:bookingId', requireStaff, async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { data: booking, error: bErr } = await supabase
+      .from('bookings')
+      .select('*, rooms(*), customers(name, phone)')
+      .eq('id', bookingId).single();
+    if (bErr || !booking) return res.status(404).json({ error: 'Không tìm thấy booking' });
+
+    const { data: orders } = await supabase
+      .from('orders')
+      .select('status, order_items(amount)')
+      .eq('booking_id', bookingId)
+      .not('status', 'eq', 'cancelled');
+
+    const { total: roomAmount } = await calcRoomAmount(booking, booking.rooms);
+    const allItems   = orders?.flatMap(o => o.order_items) || [];
+    const foodAmount = allItems.reduce((s, i) => s + i.amount, 0);
+    const surcharge  = calcSurcharge(booking.rooms, booking.people);
+
+    res.json({
+      roomAmount,
+      foodAmount,
+      surcharge,
+      totalBeforeDiscount: roomAmount + foodAmount + surcharge
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -105,17 +146,17 @@ router.post('/',
   async (req, res) => {
     const { bookingId, discount = 0, extraSurcharge = 0, note } = req.body;
 
-    const { data: existing } = await supabase
-      .from('invoices').select('id').eq('booking_id', bookingId).single();
-    if (existing)
-      return res.status(409).json({ error: 'Booking này đã có hoá đơn', invoiceId: existing.id });
-
     const { data: booking, error: bErr } = await supabase
       .from('bookings')
       .select('*, rooms(*), customers(name, phone)')
       .eq('id', bookingId).single();
     if (bErr || !booking)
       return res.status(404).json({ error: 'Không tìm thấy booking' });
+
+    const { data: existingInv } = await supabase.from('invoices').select('id').eq('booking_id', bookingId).single();
+    if (existingInv)
+      return res.status(409).json({ error: 'Booking này đã có hoá đơn', invoiceId: existingInv.id });
+
     if (booking.status === 'cancelled')
       return res.status(400).json({ error: 'Booking đã huỷ, không thể xuất hoá đơn' });
 

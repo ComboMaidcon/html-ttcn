@@ -530,8 +530,8 @@ async function renderReportsTab() {
     `;
 
     // 2. Revenue Breakdown
-    const total = ov.totalRevenue || 1; // prevent divide by zero
-    const pct = (val) => ((val / total) * 100).toFixed(1) + '%';
+    const grossTotal = (ov.roomRevenue + ov.foodRevenue + ov.surcharge) || 1; 
+    const pct = (val) => ((val / grossTotal) * 100).toFixed(1) + '%';
     document.getElementById('revenueBreakdown').innerHTML = `
       <div style="display:flex; justify-content:space-between; margin-bottom: 5px">
         <span>Tiền Phòng: <strong>${(ov.roomRevenue).toLocaleString()}K</strong></span>
@@ -677,14 +677,22 @@ async function renderInvoicesTab() {
       return;
     }
 
-    wrap.innerHTML = res.invoices.map(inv => {
-      const b = inv.bookings;
-      const c = b?.customers;
-      const r = b?.rooms;
-      
-      const timeStr = b ? `${b.start_time.slice(0,5)} - ${b.end_time.slice(0,5)}` : 'N/A';
-      const custStr = c ? `<strong style="color:var(--gold)">${c.name}</strong><br><small style="color:var(--muted)">${c.phone}</small>` : 'Khách vãng lai';
-      const roomStr = r ? r.name : (b ? b.room_id : 'N/A');
+        wrap.innerHTML = res.invoices.map(inv => {
+          const bList = Array.isArray(inv.bookings) ? inv.bookings : (inv.bookings ? [inv.bookings] : []);
+          const c = inv.customers || bList[0]?.customers;
+          
+          let displayName = 'Khách vãng lai';
+          let phoneStr = '';
+          if (c) {
+             if (c.name) displayName = c.name;
+             else if (c.phone) displayName = c.phone;
+             
+             if (c.phone) phoneStr = `<br><small style="color:var(--muted)">${c.phone}</small>`;
+          }
+          
+          const timeStr = bList.length > 0 ? bList.map(bk => `${bk.start_time?.slice(0,5) || '?'} - ${bk.end_time?.slice(0,5) || '?'}`).join('<br>') : 'N/A';
+          const custStr = c ? `<strong style="color:var(--gold)">${displayName}</strong>${phoneStr}` : 'Khách vãng lai';
+          const roomStr = bList.length > 0 ? bList.map(bk => bk.rooms?.name || bk.room_id).join(', ') : 'N/A';
       
       // Lấy danh sách đồ ăn từ invoice_items
       const foodItems = inv.invoice_items ? inv.invoice_items.filter(i => i.item_type === 'food') : [];
@@ -698,9 +706,9 @@ async function renderInvoicesTab() {
           <td>${custStr}<br><span style="font-size:.85rem;color:#f87171">${roomStr}</span></td>
           <td style="color:var(--muted)">${timeStr}</td>
           <td style="max-width:200px">${foodHtml}</td>
-          <td style="color:var(--muted)">${(inv.room_amount||0).toLocaleString()}đ</td>
-          <td style="color:var(--muted)">${(inv.food_amount||0).toLocaleString()}đ</td>
-          <td style="color:#4ade80;font-weight:600">${(inv.total_amount||0).toLocaleString()}đ</td>
+          <td style="color:var(--muted)">${(inv.room_amount||0).toLocaleString()}K</td>
+          <td style="color:var(--muted)">${(inv.food_amount||0).toLocaleString()}K</td>
+          <td style="color:#4ade80;font-weight:600">${(inv.total_amount||0).toLocaleString()}K</td>
           <td style="color:var(--muted)">${new Date(inv.created_at).toLocaleString('vi-VN')}<br><span class="status-badge completed" style="margin-top:4px;font-size:.7rem">Đã thu</span></td>
         </tr>
       `;
@@ -727,7 +735,7 @@ async function renderKitchenTab() {
       const itemsHtml = o.order_items.map(i => `
         <div style="display:flex; justify-content:space-between; margin-bottom:.5rem; border-bottom:1px dashed rgba(255,255,255,.1); padding-bottom:.2rem">
           <span>${i.quantity}x ${i.menu_items?.name || 'Món'}</span>
-          <span style="color:var(--gold)">${(i.unit_price * i.quantity / 1000).toLocaleString()}k</span>
+          <span style="color:var(--gold)">${(i.unit_price * i.quantity).toLocaleString()}k</span>
         </div>
       `).join('');
 
@@ -1167,17 +1175,61 @@ async function posShowCheckout() {
     posState.pastOrders.forEach(o => {
       // Ignore cancelled orders exactly as backend does
       if (o.status !== 'cancelled' && o.order_items) {
-         o.order_items.forEach(oi => { foodTotal += oi.amount * 1000; });
+         o.order_items.forEach(oi => { foodTotal += oi.amount; });
       }
     });
   }
 
   document.getElementById('coRoomName').value = posState.selectedRoom.name;
-  document.getElementById('coFoodAmount').innerText = foodTotal.toLocaleString() + ' đ';
+  document.getElementById('coFoodAmount').innerText = foodTotal.toLocaleString() + ' K';
+  document.getElementById('coRoomAmount').innerText = 'Đang tính...';
+  document.getElementById('coTotalAmount').innerText = 'Đang tính...';
   document.getElementById('coDiscount').value = 0;
+  document.getElementById('coDiscountId').value = '';
+  document.getElementById('coDiscountCode').value = '';
   document.getElementById('coSurcharge').value = 0;
   document.getElementById('coNote').value = '';
   document.getElementById('checkoutModal').classList.add('active');
+
+  // Load preview tổng tiền (Tiền phòng + Đồ ăn)
+  apiPreviewInvoice(posState.activeBooking.id).then(res => {
+     document.getElementById('coRoomAmount').innerText = res.roomAmount.toLocaleString() + ' K';
+     document.getElementById('coFoodAmount').innerText = res.foodAmount.toLocaleString() + ' K';
+     document.getElementById('coTotalAmount').innerText = res.totalBeforeDiscount.toLocaleString() + ' K';
+     posState.checkoutTotal = res.totalBeforeDiscount; // Lưu lại để tính % giảm giá
+  }).catch(err => {
+     document.getElementById('coRoomAmount').innerText = 'Lỗi tính tiền';
+     document.getElementById('coTotalAmount').innerText = 'Lỗi tính tiền';
+     posState.checkoutTotal = 0;
+  });
+
+  // Load mã hợp lệ
+  const vContainer = document.getElementById('coValidDiscounts');
+  if (vContainer) {
+    vContainer.innerHTML = '<span style="color:var(--muted); font-size:0.8rem">Đang tải mã...</span>';
+    apiGetDiscounts().then(dRes => {
+      const discounts = dRes.discounts || [];
+      const valid = discounts.filter(d => {
+         if (!d.is_active) return false;
+         if (d.valid_until && new Date(d.valid_until) < new Date()) return false;
+         if (d.max_uses && d.used_count >= d.max_uses) return false;
+         if (d.target_type === 'room_type' && posState.selectedRoom && d.target_id !== posState.selectedRoom.type) return false;
+         return true;
+      });
+
+      if (valid.length === 0) {
+        vContainer.innerHTML = '<span style="color:var(--muted); font-size:0.8rem">Không có mã khả dụng</span>';
+      } else {
+        vContainer.innerHTML = valid.map(d => 
+          `<button class="pos-filter-pill" style="font-size: 0.8rem; padding: 4px 10px; border-color: var(--gold); color: var(--gold); cursor: pointer;" onclick="document.getElementById('coDiscountCode').value='${d.code}'; applyDiscountCode();">
+            🎁 ${d.code} (-${d.discount_value}${d.discount_type === 'percent' ? '%' : 'k'})
+          </button>`
+        ).join('');
+      }
+    }).catch(err => {
+      vContainer.innerHTML = '';
+    });
+  }
 }
 
 async function posConfirmCheckout() {
@@ -1293,3 +1345,130 @@ async function posCheckout() {
     showToast('Lỗi: ' + err.message, true);
   }
 }
+
+/* =========================================================
+   DISCOUNTS (KHUYẾN MÃI)
+========================================================= */
+let allDiscounts = [];
+
+async function renderDiscountsTab() {
+  const container = document.getElementById('discountsList');
+  if (!container) return;
+  container.innerHTML = '<div style="padding:1rem">Đang tải mã giảm giá...</div>';
+  
+  try {
+    const res = await apiGetDiscounts();
+    allDiscounts = res.discounts || [];
+    
+    if (allDiscounts.length === 0) {
+      container.innerHTML = '<div style="padding:1rem; color:var(--muted)">Chưa có mã giảm giá nào.</div>';
+      return;
+    }
+    
+    container.innerHTML = allDiscounts.map(d => `
+      <div class="item-row" style="grid-template-columns: 2fr 3fr 2fr 2fr 2fr 2fr 2fr;">
+        <span style="font-weight:bold; color:var(--gold)">${d.code}</span>
+        <span>${d.description || '-'}</span>
+        <span>${d.discount_type === 'percent' ? 'Phần trăm (%)' : 'Tiền mặt (VNĐ)'}</span>
+        <span>${d.discount_value}${d.discount_type === 'percent' ? '%' : 'k'}</span>
+        <span>${d.used_count} / ${d.max_uses || '∞'}</span>
+        <span>${d.valid_until ? new Date(d.valid_until).toLocaleDateString() : 'Vĩnh viễn'}</span>
+        <div>
+          <button class="btn-del" onclick="deleteDiscount('${d.id}')">Xoá</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = `<div style="padding:1rem; color:var(--red)">Lỗi: ${err.message}</div>`;
+  }
+}
+
+function showAddDiscountModal() {
+  document.getElementById('dCode').value = '';
+  document.getElementById('dDesc').value = '';
+  document.getElementById('dType').value = 'fixed';
+  document.getElementById('dValue').value = '';
+  document.getElementById('dMaxUses').value = '';
+  document.getElementById('dValidUntil').value = '';
+  document.getElementById('discountModal').classList.add('active');
+}
+
+async function doSaveDiscount() {
+  const code = document.getElementById('dCode').value.trim();
+  const description = document.getElementById('dDesc').value.trim();
+  const discount_type = document.getElementById('dType').value;
+  const discount_value = parseInt(document.getElementById('dValue').value);
+  const max_uses = document.getElementById('dMaxUses').value ? parseInt(document.getElementById('dMaxUses').value) : null;
+  const valid_until = document.getElementById('dValidUntil').value || null;
+
+  if (!code || code.length < 4) return showToast('Mã code phải từ 4 ký tự', true);
+  if (!discount_value || discount_value <= 0) return showToast('Mức giảm không hợp lệ', true);
+
+  try {
+    await apiCreateDiscount({
+      code, description, discount_type, discount_value, max_uses, valid_until, target_type: 'all'
+    });
+    showToast('Đã tạo mã giảm giá!');
+    document.getElementById('discountModal').classList.remove('active');
+    renderDiscountsTab();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+async function deleteDiscount(id) {
+  if (!confirm('Bạn có chắc chắn muốn xoá mã này?')) return;
+  try {
+    await apiDeleteDiscount(id);
+    showToast('Đã xoá mã giảm giá');
+    renderDiscountsTab();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+// Checkout Apply Code
+async function applyDiscountCode() {
+  const codeInput = document.getElementById('coDiscountCode');
+  const code = codeInput.value.trim();
+  if (!code) return showToast('Vui lòng nhập mã giảm giá', true);
+
+  try {
+    const res = await apiValidateDiscount(code);
+    const d = res.discount;
+    showToast(`✅ Áp dụng mã ${d.code} thành công!`);
+    
+    // Lưu tạm vào hidden input hoặc UI
+    document.getElementById('coDiscountId').value = d.id;
+    document.getElementById('coDiscountId').dataset.type = d.discount_type;
+    document.getElementById('coDiscountId').dataset.value = d.discount_value;
+    
+    // Tính mức giảm giả định
+    let estimate = 0;
+    if (d.discount_type === 'fixed') {
+      estimate = d.discount_value;
+      document.getElementById('coDiscount').value = estimate;
+    } else {
+      if (posState.checkoutTotal) {
+         estimate = Math.round((posState.checkoutTotal * d.discount_value) / 100);
+         document.getElementById('coDiscount').value = estimate;
+         showToast(`Mã giảm ${d.discount_value}% - Tương đương ${estimate.toLocaleString()}K`);
+      } else {
+         document.getElementById('coDiscount').value = '0'; 
+         showToast(`Mã giảm ${d.discount_value}% - Vui lòng đợi hệ thống tính tổng tiền`);
+      }
+    }
+  } catch (err) {
+    showToast(err.message, true);
+    document.getElementById('coDiscountId').value = '';
+    document.getElementById('coDiscount').value = '0';
+  }
+}
+
+// Hook into tab switching
+const originalSidebarClick = document.querySelectorAll('.sidebar-tab');
+originalSidebarClick.forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.dataset.tab === 'discounts') renderDiscountsTab();
+  });
+});

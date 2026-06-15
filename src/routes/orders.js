@@ -73,7 +73,7 @@ router.get('/admin', requireStaff, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('orders')
-      .select('*, bookings(room_id, rooms(name)), order_items(*, menu_items(name))')
+      .select('*, bookings(room_id, rooms(name, floor)), order_items(*, menu_items(name))')
       .eq('status', 'open')
       .order('created_at', { ascending: false });
     if (error) throw error;

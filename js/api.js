@@ -261,3 +261,41 @@ async function apiCreateInvoice(bookingId, discount = 0, extraSurcharge = 0, not
     body: { bookingId, discount, extraSurcharge, note }
   });
 }
+
+async function apiPreviewInvoice(bookingId) {
+  return apiFetch(`/api/invoices/preview/${bookingId}`);
+}
+
+/* ════════════════════════════════
+   DISCOUNTS
+   ════════════════════════════════ */
+async function apiGetDiscounts() {
+  return apiFetch('/api/discounts');
+}
+
+async function apiValidateDiscount(code) {
+  return apiFetch('/api/discounts/validate', {
+    method: 'POST',
+    body: { code }
+  });
+}
+
+async function apiCreateDiscount(data) {
+  return apiFetch('/api/discounts', {
+    method: 'POST',
+    body: data
+  });
+}
+
+async function apiUpdateDiscount(id, data) {
+  return apiFetch(`/api/discounts/${id}`, {
+    method: 'PATCH',
+    body: data
+  });
+}
+
+async function apiDeleteDiscount(id) {
+  return apiFetch(`/api/discounts/${id}`, {
+    method: 'DELETE'
+  });
+}

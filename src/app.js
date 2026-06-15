@@ -45,6 +45,7 @@ app.use('/api/invoices',  require('./routes/invoices'));
 app.use('/api/menu',      require('./routes/menu'));
 app.use('/api/reviews',   require('./routes/reviews'));
 app.use('/api/reports',   require('./routes/reports'));
+app.use('/api/discounts', require('./routes/discounts'));
 
 // ── Health check ──────────────────────────────────────────
 app.get('/health', (req, res) =>
